@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'dart:convert'; // Add this import for JSON decoding
+import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:web_socket_channel/status.dart' as status;
 
 void main() {
   runApp(const MyApp());
@@ -32,26 +33,45 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   Map<String, dynamic> _data = {};
+  late WebSocketChannel channel;
 
   @override
   void initState() {
     super.initState();
-    fetchData();
+    connectWebSocket();
   }
 
-  Future<void> fetchData() async {
-    final response = await http.get(Uri.parse('http://192.168.1.120:1880/data/second'));
+  void _sendMessage() {
+    final message = 'Hello from Flutter!';
+    channel.sink.add(message);
+  }
 
-    if (response.statusCode == 200) {
-      // If the server returns a 200 OK response, parse the JSON data
-      final data = jsonDecode(response.body);
-      setState(() {
-        _data = data;
-      });
-    } else {
-      // If the server did not return a 200 OK response, throw an exception
-      throw Exception('Failed to load data');
-    }
+  void connectWebSocket() {
+    channel = WebSocketChannel.connect(
+      Uri.parse('ws://192.168.1.120:1880/ws/data'), // Replace with your WebSocket URL
+    );
+
+    channel.stream.listen((message) {
+      print('Received message: $message'); // Debugging statement
+      try {
+        final data = jsonDecode(message);
+        setState(() {
+          _data = data;
+        });
+      } catch (e) {
+        print('Error decoding JSON: $e');
+      }
+    }, onError: (error) {
+      print('WebSocket error: $error');
+    }, onDone: () {
+      print('WebSocket connection closed');
+    });
+  }
+
+  @override
+  void dispose() {
+    channel.sink.close(status.goingAway);
+    super.dispose();
   }
 
   @override
@@ -66,30 +86,48 @@ class _MyHomePageState extends State<MyHomePage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              //const Text('Your personal aquarium assistant'),
+              ElevatedButton(
+                onPressed: _sendMessage,
+                child: Text('Send Message'),
+              ),
+              const Text(
+                'Your personal aquarium assistant',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
               if (_data.isNotEmpty) ...[
-                Text('Weather: ${_data['weather']}'),
-                Text('Detail: ${_data['detail']}'),
-                Text('Icon: ${_data['icon']}'),
-                Text('Temperature (K): ${_data['tempk']}'),
-                Text('Temperature (C): ${_data['tempc']}'),
-                Text('Max Temperature (C): ${_data['temp_maxc']}'),
-                Text('Min Temperature (C): ${_data['temp_minc']}'),
-                Text('Humidity: ${_data['humidity']}'),
-                Text('Pressure: ${_data['pressure']}'),
-                Text('Max Temperature (K): ${_data['maxtemp']}'),
-                Text('Min Temperature (K): ${_data['mintemp']}'),
-                Text('Wind Speed: ${_data['windspeed']}'),
-                Text('Wind Direction: ${_data['winddirection']}'),
-                Text('Location: ${_data['location']}'),
-                Text('Sunrise: ${DateTime.fromMillisecondsSinceEpoch(_data['sunrise'] * 1000)}'),
-                Text('Sunset: ${DateTime.fromMillisecondsSinceEpoch(_data['sunset'] * 1000)}'),
-                Text('Clouds: ${_data['clouds']}'),
-                Text('Description: ${_data['description']}'),
+                buildDataCard('Location', _data['location']),
+                buildDataCard('Weather', _data['weather']),
+                buildDataCard('Detail', _data['detail']),
+                buildDataCard('Icon', _data['icon']),
+                buildDataCard('Temperature (K)', _data['tempk']),
+                buildDataCard('Temperature (C)', _data['tempc']),
+                buildDataCard('Max Temperature (C)', _data['temp_maxc']),
+                buildDataCard('Min Temperature (C)', _data['temp_minc']),
+                buildDataCard('Humidity', _data['humidity']),
+                buildDataCard('Pressure', _data['pressure']),
+                buildDataCard('Max Temperature (K)', _data['maxtemp']),
+                buildDataCard('Min Temperature (K)', _data['mintemp']),
+                buildDataCard('Wind Speed', _data['windspeed']),
+                buildDataCard('Wind Direction', _data['winddirection']),
+                buildDataCard('Sunrise', DateTime.fromMillisecondsSinceEpoch(_data['sunrise'] * 1000).toString()),
+                buildDataCard('Sunset', DateTime.fromMillisecondsSinceEpoch(_data['sunset'] * 1000).toString()),
+                buildDataCard('Clouds', _data['clouds']),
+                buildDataCard('Description', _data['description']),
               ],
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget buildDataCard(String title, dynamic value) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+      child: ListTile(
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text(value.toString()),
       ),
     );
   }
