@@ -13,6 +13,7 @@ class WebSocketPage extends StatefulWidget {
 class _WebSocketPageState extends State<WebSocketPage> {
   Map<String, dynamic> _data = {};
   late WebSocketChannel channel;
+  final TextEditingController _controller = TextEditingController();
 
   @override
   void initState() {
@@ -21,13 +22,15 @@ class _WebSocketPageState extends State<WebSocketPage> {
   }
 
   void _sendMessage() {
-    final message = 'Hello from Flutter!';
-    channel.sink.add(message);
+    final message = _controller.text;
+    if (message.isNotEmpty) {
+      channel.sink.add(message);
+    }
   }
 
   void connectWebSocket() {
     channel = WebSocketChannel.connect(
-      Uri.parse('ws://192.168.1.120:1880/ws/data'), // Replace with your WebSocket URL
+      Uri.parse('ws://159.89.173.231:1880/ws/info'), // Replace with your WebSocket URL
     );
 
     channel.stream.listen((message) {
@@ -50,6 +53,7 @@ class _WebSocketPageState extends State<WebSocketPage> {
   @override
   void dispose() {
     channel.sink.close(status.goingAway);
+    _controller.dispose();
     super.dispose();
   }
 
@@ -64,9 +68,19 @@ class _WebSocketPageState extends State<WebSocketPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: TextField(
+                  controller: _controller,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'Enter message',
+                  ),
+                ),
+              ),
               ElevatedButton(
                 onPressed: _sendMessage,
-                child: Text('Say Hellp to nodered'),
+                child: Text('Send Message'),
               ),
               const SizedBox(height: 20),
               if (_data.isNotEmpty) ...[

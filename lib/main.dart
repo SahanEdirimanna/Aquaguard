@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'screens/homepage.dart'; // Import the Home page
 import 'screens/weather.dart'; // Import the WebSocket page
+import 'screens/conversation.dart'; // Import the Conversation page
 
 void main() {
   runApp(const MyApp());
@@ -14,7 +15,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'AquaGuard',
       theme: ThemeData(
-      colorScheme: ColorScheme.fromSeed(seedColor: const Color.fromARGB(255, 10, 135, 237)),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color.fromARGB(255, 10, 135, 237)),
       ),
       home: const MainPage(),
     );
@@ -34,6 +35,7 @@ class _MainPageState extends State<MainPage> {
   static List<Widget> get _widgetOptions => <Widget>[
     HomePage(), // Use the HomePage widget
     WebSocketPage(), // Use the WebSocketPage widget
+    ConversationPage(), // Use the ConversationPage widget
   ];
 
   void _onItemTapped(int index) {
@@ -64,6 +66,10 @@ class _MainPageState extends State<MainPage> {
           BottomNavigationBarItem(
             icon: Icon(Icons.cloud),
             label: 'Weather',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.chat),
+            label: 'Conversation',
           ),
         ],
         currentIndex: _selectedIndex,
