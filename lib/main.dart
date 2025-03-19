@@ -93,7 +93,7 @@ class _MainPageState extends State<MainPage> {
         ],
         currentIndex: _selectedIndex,
         selectedItemColor: Theme.of(context).colorScheme.primary,
-        unselectedItemColor: const Color.fromARGB(255, 95, 201, 239),
+        unselectedItemColor: const Color.fromARGB(255, 2, 83, 113),
         onTap: _onItemTapped,
       ),
     );
