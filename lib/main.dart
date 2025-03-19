@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+//import 'screens/weather.dart'; // Import the WebSocket page
+//import 'screens/conversation.dart'; // Import the Conversation page
 import 'screens/homepage.dart'; // Import the Home page
-import 'screens/weather.dart'; // Import the WebSocket page
-import 'screens/conversation.dart'; // Import the Conversation page
+import 'screens/dashboard.dart';
+import 'screens/marketplace.dart';
+import 'screens/notifications.dart';
+import '/screens/settings.dart';
 
 void main() {
   runApp(const MyApp());
@@ -34,8 +38,10 @@ class _MainPageState extends State<MainPage> {
 
   static List<Widget> get _widgetOptions => <Widget>[
     HomePage(), // Use the HomePage widget
-    WebSocketPage(), // Use the WebSocketPage widget
-    ConversationPage(), // Use the ConversationPage widget
+    DashboardPage(), // Use the WebSocketPage widget
+    MarketplacePage(), 
+    NotificationsPage(), // Use the NotificationsPage widget
+    SettingsPage()// Use the ConversationPage widget
   ];
 
   void _onItemTapped(int index) {
@@ -60,16 +66,24 @@ class _MainPageState extends State<MainPage> {
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            label: 'Dashboard',
+            icon: Icon(Icons.home),
+            label: 'Home',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.cloud),
-            label: 'Weather',
+            label: 'Dashboard',
           ),
+            BottomNavigationBarItem(
+            icon: Icon(Icons.shop),
+            label: 'Marketplace',
+            ),
+            BottomNavigationBarItem(
+            icon: Icon(Icons.notifications),
+            label: 'Notifications',
+            ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.chat),
-            label: 'Conversation',
+            icon: Icon(Icons.settings),
+            label: 'Settings',
           ),
         ],
         currentIndex: _selectedIndex,
