@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'dart:convert';
+import 'package:aquaguard/globals.dart' as globals;
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -42,20 +43,31 @@ class DashboardPageState extends State<DashboardPage> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: _data.isEmpty
-            ? Center(child: CircularProgressIndicator())
-            : GridView.count(
-                crossAxisCount: 2,
-                crossAxisSpacing: 16.0,
-                mainAxisSpacing: 16.0,
-                children: [
-                  _buildDashboardCard(Icons.water_drop, 'pH', _data['pH']),
-                  _buildDashboardCard(Icons.thermostat, 'Temperature', _data['temperature']),
-                  _buildDashboardCard(Icons.opacity, 'Turbidity', _data['turbidity']),
-                  _buildDashboardCard(Icons.filter_alt, 'TDS Value', _data['tds_value']),
-                ],
-              ),
-      ),
+        child: Column(
+          children: [
+        Text(
+          'Device ID: ${globals.globalDeviceId}',
+          style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+        ),
+        SizedBox(height: 16.0),
+        Expanded(
+          child: _data.isEmpty
+          ? Center(child: CircularProgressIndicator())
+          : GridView.count(
+              crossAxisCount: 2,
+              crossAxisSpacing: 16.0,
+              mainAxisSpacing: 16.0,
+              children: [
+            _buildDashboardCard(Icons.water_drop, 'pH', _data['pH']),
+            _buildDashboardCard(Icons.thermostat, 'Temperature', _data['temperature']),
+            _buildDashboardCard(Icons.opacity, 'Turbidity', _data['turbidity']),
+            _buildDashboardCard(Icons.filter_alt, 'TDS Value', _data['tds_value']),
+              ],
+            ),
+        ),
+          ],
+        ),
+      ),  
     );
   }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:aquaguard/globals.dart'; // Import the global variable
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -35,6 +36,7 @@ class SettingsPageState extends State<SettingsPage> {
     _tankParametersChannel = WebSocketChannel.connect(
       Uri.parse('ws://159.89.173.231:1880/ws/settings/tank_parameters'),
     );
+    _deviceIdController.text = globalDeviceId; // Load the global deviceId
   }
 
   void _generateFishInputs() {
@@ -91,6 +93,12 @@ class SettingsPageState extends State<SettingsPage> {
     }
   }
 
+  void _updateDeviceId() {
+    setState(() {
+      globalDeviceId = _deviceIdController.text.trim(); // Update the global variable
+    });
+  }
+
   @override
   void dispose() {
     _fishDetailsChannel.sink.close();
@@ -128,6 +136,13 @@ class SettingsPageState extends State<SettingsPage> {
               decoration: InputDecoration(
                 border: OutlineInputBorder(),
                 labelText: 'Enter Device ID',
+              ),
+              ),
+              const SizedBox(height: 16.0),
+              Center(
+              child: ElevatedButton(
+                onPressed: _updateDeviceId,
+                child: Text('Save Device ID'),
               ),
               ),
               const SizedBox(height: 16.0),
