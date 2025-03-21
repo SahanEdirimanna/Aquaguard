@@ -12,15 +12,16 @@ class SettingsPage extends StatefulWidget {
 class SettingsPageState extends State<SettingsPage> {
   late WebSocketChannel _channel;
   final TextEditingController _fishTypeCountController = TextEditingController();
+  final TextEditingController _deviceIdController = TextEditingController();
   int _fishTypeCount = 0;
   List<Map<String, dynamic>> _fishInputs = [];
-  final List<String> _fishNames = ['Goldfish', 'Betta', 'Guppy', 'Tetra', 'Angelfish'];
+  final List<String> _fishNames = ['Goldfish', 'Koi', 'Guppy', 'Tetra', 'Angelfish'];
 
   @override
   void initState() {
     super.initState();
     _channel = WebSocketChannel.connect(
-      Uri.parse('ws://159.89.173.231:1880/ws/settings'), // Replace with your WebSocket URL
+      Uri.parse('ws://159.89.173.231:1880/ws/settings/fsh_details'), // Replace with your WebSocket URL
     );
   }
 
@@ -37,7 +38,7 @@ class SettingsPageState extends State<SettingsPage> {
     });
   }
 
-  void _sendMessage() {
+  void _sendMessagefishdetails() {
     final fishData = _fishInputs.map((fishInput) {
       return {
         'name': fishInput['name'] ?? '',
@@ -46,12 +47,15 @@ class SettingsPageState extends State<SettingsPage> {
       };
     }).toList();
 
-    final message = fishData.map((fish) {
-      return 'Fish Type: ${fish['name']}, Count: ${fish['count']}, Average Age: ${fish['age']}';
-    }).join('; ');
+    final deviceId = _deviceIdController.text.trim();
 
-    if (message.isNotEmpty) {
-      _channel.sink.add(message);
+    final message = {
+      'deviceId': deviceId,
+      'fishData': fishData,
+    };
+
+    if (deviceId.isNotEmpty) {
+      _channel.sink.add(message.toString());
     }
   }
 
@@ -59,6 +63,7 @@ class SettingsPageState extends State<SettingsPage> {
   void dispose() {
     _channel.sink.close(status.goingAway);
     _fishTypeCountController.dispose();
+    _deviceIdController.dispose();
     for (var fishInput in _fishInputs) {
       fishInput['count']?.dispose();
       fishInput['age']?.dispose();
@@ -79,6 +84,14 @@ class SettingsPageState extends State<SettingsPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               TextField(
+                controller: _deviceIdController,
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: 'Enter Device ID',
+                ),
+              ),
+              const SizedBox(height: 16.0),
+              TextField(
                 controller: _fishTypeCountController,
                 decoration: InputDecoration(
                   border: OutlineInputBorder(),
@@ -88,7 +101,7 @@ class SettingsPageState extends State<SettingsPage> {
               const SizedBox(height: 16.0),
               ElevatedButton(
                 onPressed: _generateFishInputs,
-                child: Text('Generate Input Fields'),
+                child: Text('Generate Fish Inputs'),
               ),
               const SizedBox(height: 16.0),
               if (_fishInputs.isNotEmpty)
@@ -160,10 +173,9 @@ class SettingsPageState extends State<SettingsPage> {
                     );
                   },
                 ),
-              if (_fishInputs.isNotEmpty)
-                ElevatedButton(
-                  onPressed: _sendMessage,
-                  child: Text('Send Message'),
+              ElevatedButton(
+                  onPressed: _sendMessagefishdetails,
+                  child: Text('Send Fish details'),
                 ),
             ],
           ),
