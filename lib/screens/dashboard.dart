@@ -1,6 +1,8 @@
+//import 'package:aquaguard/globals.dart';
 import 'package:flutter/material.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'dart:convert';
+import 'package:intl/intl.dart'; // For formatting DateTime
 import 'package:aquaguard/globals.dart' as globals;
 
 class DashboardPage extends StatefulWidget {
@@ -12,10 +14,15 @@ class DashboardPage extends StatefulWidget {
 
 class DashboardPageState extends State<DashboardPage> {
   late WebSocketChannel _dataChannel;
-  late WebSocketChannel _timeChannel;
 
   Map<String, dynamic> _data = {};
-  Map<String, dynamic> _timeData = {};
+
+  String _nextFeedTime = 'Calculating...';
+  String _timeRemaining = 'Calculating...';
+
+  // Define lastFeedTime with a default value
+  DateTime lastFeedTime = DateTime.now().toUtc().add(const Duration(hours: 5, minutes: 30)); // Example: Current time in GMT+5:30
+  //DateTime lastFeedTime = DateFormat('yyyy-MM-dd HH:mm:ss').parse(globals.globalTime);
 
   @override
   void initState() {
@@ -32,22 +39,41 @@ class DashboardPageState extends State<DashboardPage> {
       });
     });
 
-    // WebSocket for time data
-    _timeChannel = WebSocketChannel.connect(
-      Uri.parse('ws://159.89.173.231:1880/ws/dashboard/time/${globals.globalDeviceId}'),
-    );
+    // Calculate next feeding time and remaining time
+    _calculateFeedingTimes();
+  }
 
-    _timeChannel.stream.listen((message) {
+  void _calculateFeedingTimes() {
+    try {
+      // Parse global time and interval
+      final DateTime now = DateTime.now().toUtc().add(const Duration(hours: 5, minutes: 30)); // Current time in GMT+5:30
+   
+        
+      final int interval = int.tryParse(globals.globalInterval) ?? 0;
+
+      // Calculate next feeding time
+      final DateTime nextFeedTime = lastFeedTime.add(Duration(hours: interval));
+
+      // Calculate remaining time
+      final Duration remainingDuration = nextFeedTime.difference(now);
+
       setState(() {
-        _timeData = jsonDecode(message);
+        _nextFeedTime = DateFormat('yyyy-MM-dd hh:mm a').format(nextFeedTime); // Format next feed time
+        _timeRemaining = remainingDuration.isNegative
+            ? 'Feeding overdue'
+            : '${remainingDuration.inHours} hours ${remainingDuration.inMinutes % 60} minutes';
       });
-    });
+    } catch (e) {
+      setState(() {
+        _nextFeedTime = 'Error calculating time';
+        _timeRemaining = 'Error calculating time';
+      });
+    }
   }
 
   @override
   void dispose() {
     _dataChannel.sink.close();
-    _timeChannel.sink.close();
     super.dispose();
   }
 
@@ -66,42 +92,41 @@ class DashboardPageState extends State<DashboardPage> {
               'Device ID: ${globals.globalDeviceId}',
               style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
             ),
+            //Text('Time: ${globals.globalTime}'),
+            //Text('Interval: ${globals.globalInterval}'),
             const SizedBox(height: 16.0),
 
-            // Time Data Panel
-            _timeData.isEmpty
-                ? Center(child: CircularProgressIndicator())
-                : Card(
-                    elevation: 4.0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12.0),
+            // Feeding Time Panel
+            Card(
+              elevation: 4.0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.0),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                    Text(
+                      'Next Feeding Time',
+                      style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Next Feeding Time',
-                            style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 8.0),
-                          Text(
-                            'Device ID: ${_timeData['device_id'] ?? 'N/A'}',
-                            style: TextStyle(fontSize: 16.0),
-                          ),
-                          Text(
-                            'Next Feed Time: ${_timeData['next_feed_time'] ?? 'N/A'}',
-                            style: TextStyle(fontSize: 16.0),
-                          ),
-                          Text(
-                            'Time Remaining: ${_timeData['time_remaining'] ?? 'N/A'}',
-                            style: TextStyle(fontSize: 16.0),
-                          ),
-                        ],
-                      ),
+                    const SizedBox(height: 8.0),
+                    Text(
+                      'Next Feed Time: $_nextFeedTime',
+                      style: TextStyle(fontSize: 16.0),
+                      textAlign: TextAlign.center,
                     ),
-                  ),
+                    Text(
+                      'Time Remaining: $_timeRemaining',
+                      style: TextStyle(fontSize: 16.0),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
             const SizedBox(height: 16.0),
 
             // Dashboard Data

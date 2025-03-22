@@ -28,6 +28,9 @@ class SettingsPageState extends State<SettingsPage> {
   @override
   void initState() {
     super.initState();
+    _timeController.text = globalTime; // Pre-fill with global time
+    _intervalController.text = globalInterval; // Pre-fill with global interval
+
     _fishDetailsChannel = WebSocketChannel.connect(
       Uri.parse('ws://159.89.173.231:1880/ws/settings/fsh_details'),
     );
@@ -76,6 +79,10 @@ class SettingsPageState extends State<SettingsPage> {
     final interval = _intervalController.text.trim();
     final tankSize = _tankSizeController.text.trim();
     final lightIntensity = _lightIntensityController.text.trim();
+
+    // Update global variables
+    globalTime = time;
+    globalInterval = interval;
 
     final message = {
       'device_id': deviceId,
