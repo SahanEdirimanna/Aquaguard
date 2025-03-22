@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'screens/homepage.dart'; // Import the Home page
 import 'screens/dashboard.dart';
 import 'screens/marketplace.dart';
-import 'screens/notifications.dart';
+import 'screens/notifications.dart' as notifications;
 import '/screens/settings.dart';
 
 void main() {
@@ -40,7 +40,7 @@ class _MainPageState extends State<MainPage> {
     HomePage(), // Use the HomePage widget
     DashboardPage(), // Use the WebSocketPage widget
     MarketplacePage(), 
-    NotificationsPage(), // Use the NotificationsPage widget
+    notifications.NotificationsPage(), // Use the NotificationsPage widget
     SettingsPage()// Use the ConversationPage widget
   ];
 
