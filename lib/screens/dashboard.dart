@@ -18,7 +18,7 @@ class DashboardPageState extends State<DashboardPage> {
   void initState() {
     super.initState();
     _channel = WebSocketChannel.connect(
-      Uri.parse('ws://159.89.173.231:1880/ws/dashboard'), // Replace with your WebSocket URL
+      Uri.parse('ws://159.89.173.231:1880/ws/dashboard/${globals.globalDeviceId}'), // Replace with your WebSocket URL
     );
 
     _channel.stream.listen((message) {
