@@ -118,75 +118,89 @@ class DashboardPageState extends State<DashboardPage> {
             Card(
               elevation: 4.0,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12.0),
+              borderRadius: BorderRadius.circular(12.0),
               ),
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
+              padding: const EdgeInsets.all(8.0), // Reduced padding
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center, // Center the components vertically
+                mainAxisSize: MainAxisSize.min, // Adjust size to fit content
+                children: [
+                Text(
+                  'Feeding Times',
+                  style: TextStyle(
+                  fontSize: 16.0,
+                  fontWeight: FontWeight.bold,
+                  color: Color.fromARGB(255, 91, 31, 229), // Highlighted with blue color
+                  ), // Smaller font size
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8.0), // Adjusted spacing
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center, // Center the rows vertically
+                  children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center, // Center the row horizontally
                     children: [
+                    Icon(Icons.access_time, color: Colors.blue, size: 20.0), // Icon
+                    SizedBox(width: 8.0), // Spacing between icon and text
                     Text(
-                      'Feeding Times',
-                      style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+                      'Last Fed Time',
+                      style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold), // Text
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 8.0),
-                    Column(
-                      children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                        Icon(Icons.access_time, color: Colors.blue, size: 24.0),
-                        Text(
-                          'Last Fed Time',
-                          style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
-                        ),
-                        ],
-                      ),
-                      const SizedBox(height: 8.0),
-                      Text(
-                        DateFormat('yyyy-MM-dd hh:mm:ss a').format(lastFeedTime),
-                        style: TextStyle(fontSize: 16.0, color: Colors.grey[700]),
-                        textAlign: TextAlign.center,
-                      ),
-                      const Divider(height: 24.0, thickness: 1.0),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                        Icon(Icons.schedule, color: Colors.green, size: 24.0),
-                        Text(
-                          'Next Feed Time',
-                          style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
-                        ),
-                        ],
-                      ),
-                      const SizedBox(height: 8.0),
-                      Text(
-                        _nextFeedTime,
-                        style: TextStyle(fontSize: 16.0, color: Colors.grey[700]),
-                        textAlign: TextAlign.center,
-                      ),
-                      const Divider(height: 24.0, thickness: 1.0),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                        Icon(Icons.timer, color: Colors.red, size: 24.0),
-                        Text(
-                          'Time Remaining',
-                          style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
-                        ),
-                        ],
-                      ),
-                      const SizedBox(height: 8.0),
-                      Text(
-                        _timeRemaining,
-                        style: TextStyle(fontSize: 16.0, color: Colors.grey[700]),
-                        textAlign: TextAlign.center,
-                      ),
-                      ],
+                    SizedBox(width: 8.0), // Spacing between text and time
+                    Text(
+                      DateFormat('yyyy-MM-dd hh:mm:ss a').format(lastFeedTime),
+                      style: TextStyle(fontSize: 14.0, color: Colors.grey[700]), // Smaller font size
+                      textAlign: TextAlign.center,
                     ),
+                    ],
+                  ),
+                  const SizedBox(height: 8.0), // Adjusted spacing
+                  const Divider(height: 16.0, thickness: 0.5), // Reduced divider height
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center, // Center the row horizontally
+                    children: [
+                    Icon(Icons.schedule, color: Colors.green, size: 20.0), // Icon
+                    SizedBox(width: 8.0), // Spacing between icon and text
+                    Text(
+                      'Next Feed Time',
+                      style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold), // Text
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(width: 8.0), // Spacing between text and time
+                    Text(
+                      _nextFeedTime,
+                      style: TextStyle(fontSize: 14.0, color: Colors.grey[700]), // Smaller font size
+                      textAlign: TextAlign.center,
+                    ),
+                    ],
+                  ),
+                  const Divider(height: 16.0, thickness: 0.5), // Reduced divider height
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center, // Center the row horizontally
+                    children: [
+                    Icon(Icons.timer, color: Colors.red, size: 20.0), // Icon
+                    SizedBox(width: 8.0), // Spacing between icon and text
+                    Text(
+                      'Time Remaining',
+                      style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold), // Text
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(width: 8.0), // Spacing between text and time
+                    Text(
+                      _timeRemaining,
+                      style: TextStyle(fontSize: 14.0, color: Colors.grey[700]), // Smaller font size
+                      textAlign: TextAlign.center,
+                    ),
+                    ],
+                  ),
                   ],
                 ),
+                ],
+              ),
               ),
             ),
             const SizedBox(height: 16.0),
