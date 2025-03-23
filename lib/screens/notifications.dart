@@ -56,6 +56,12 @@ class _NotificationsPageState extends State<NotificationsPage> {
     super.dispose();
   }
 
+  void _removeNotification(List<Map<String, dynamic>> notifications, int index) {
+    setState(() {
+      notifications.removeAt(index);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -79,34 +85,43 @@ class _NotificationsPageState extends State<NotificationsPage> {
                       style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold, color: Colors.red),
                     ),
                   ),
-                ..._criticalNotifications.map((notification) {
-                  return Card(
-                    elevation: 4.0,
-                    margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                    child: ListTile(
-                      leading: Icon(Icons.warning, color: Colors.red),
-                      title: Text(
-                        notification['general_message'] ?? 'No message',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                ..._criticalNotifications.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final notification = entry.value;
+                  return Dismissible(
+                    key: UniqueKey(),
+                    onDismissed: (direction) {
+                      _removeNotification(_criticalNotifications, index);
+                    },
+                    background: Container(color: Colors.red),
+                    child: Card(
+                      elevation: 4.0,
+                      margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                      child: ListTile(
+                        leading: Icon(Icons.warning, color: Colors.red),
+                        title: Text(
+                          notification['general_message'] ?? 'No message',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (notification['power_on'] != null)
+                              Text(
+                                'Power On: ${notification['power_on']}',
+                                style: TextStyle(color: Colors.black),
+                              ),
+                            if (notification['timestamp'] != null)
+                              Text(
+                                'Checked on: ${notification['timestamp']}',
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                          ],
+                        ),
+                        onTap: () {
+                          // Handle critical notification tap (e.g., show details)
+                        },
                       ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (notification['power_on'] != null)
-                            Text(
-                              'Power On: ${notification['power_on']}',
-                              style: TextStyle(color: Colors.black),
-                            ),
-                          if (notification['timestamp'] != null)
-                            Text(
-                              'Checked on: ${notification['timestamp']}',
-                              style: TextStyle(color: Colors.grey),
-                            ),
-                        ],
-                      ),
-                      onTap: () {
-                        // Handle critical notification tap (e.g., show details)
-                      },
                     ),
                   );
                 }),
@@ -118,34 +133,43 @@ class _NotificationsPageState extends State<NotificationsPage> {
                       style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold, color: Colors.blue),
                     ),
                   ),
-                ..._generalNotifications.map((notification) {
-                  return Card(
-                    elevation: 4.0,
-                    margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                    child: ListTile(
-                      leading: Icon(Icons.notifications, color: Colors.blue),
-                      title: Text(
-                        notification['general_message'] ?? 'No message',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                ..._generalNotifications.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final notification = entry.value;
+                  return Dismissible(
+                    key: UniqueKey(),
+                    onDismissed: (direction) {
+                      _removeNotification(_generalNotifications, index);
+                    },
+                    background: Container(color: Colors.red),
+                    child: Card(
+                      elevation: 4.0,
+                      margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                      child: ListTile(
+                        leading: Icon(Icons.notifications, color: Colors.blue),
+                        title: Text(
+                          notification['general_message'] ?? 'No message',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (notification['warnings'] != null)
+                              Text(
+                                'Warnings: ${notification['warnings']}',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            if (notification['timestamp'] != null)
+                              Text(
+                                'Checked on: ${notification['timestamp']}',
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                          ],
+                        ),
+                        onTap: () {
+                          // Handle general notification tap (e.g., show details)
+                        },
                       ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (notification['warnings'] != null)
-                            Text(
-                              'Warnings: ${notification['warnings']}',
-                              style: TextStyle(color: Colors.red),
-                            ),
-                          if (notification['timestamp'] != null)
-                            Text(
-                              'Checked on: ${notification['timestamp']}',
-                              style: TextStyle(color: Colors.grey),
-                            ),
-                        ],
-                      ),
-                      onTap: () {
-                        // Handle general notification tap (e.g., show details)
-                      },
                     ),
                   );
                 }),

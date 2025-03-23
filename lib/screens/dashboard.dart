@@ -146,7 +146,9 @@ class DashboardPageState extends State<DashboardPage> {
                     Icon(Icons.access_time, color: Colors.blue, size: 20.0), // Icon
                     SizedBox(width: 8.0), // Spacing between icon and text
                     Text(
-                      'Last Fed Time',
+                      lastFeedTime.isBefore(DateTime.now())
+                        ? 'Last Fed Time'
+                        : 'Next Feeding Time',
                       style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold), // Text
                       textAlign: TextAlign.center,
                     ),
@@ -166,7 +168,7 @@ class DashboardPageState extends State<DashboardPage> {
                     Icon(Icons.schedule, color: Colors.green, size: 20.0), // Icon
                     SizedBox(width: 8.0), // Spacing between icon and text
                     Text(
-                      'Next Feed Time',
+                      'Up next Feed Time ',
                       style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold), // Text
                       textAlign: TextAlign.center,
                     ),

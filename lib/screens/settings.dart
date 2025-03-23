@@ -258,15 +258,15 @@ class SettingsPageState extends State<SettingsPage> {
                 ),
               ),
               const SizedBox(height: 16.0),
-              TextField(
+                TextField(
                 controller: _intervalController,
-                keyboardType: TextInputType.number,
+                //keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   border: OutlineInputBorder(),
-                  labelText: 'Enter Interval need to be fed',
+                  labelText: 'Enter Interval (in minutes) for feeding',
                 ),
               ),
-                // const SizedBox(height: 16.0),
+              const SizedBox(height: 16.0),
                 // TextField(
                 //   controller: _tankSizeController,
                 //   keyboardType: TextInputType.number,
@@ -291,7 +291,7 @@ class SettingsPageState extends State<SettingsPage> {
                   backgroundColor: const Color.fromARGB(255, 202, 216, 240), // Set the background color
                   ),
                   onPressed: _sendTankParameters,
-                  child: Text('Send Tank Parameters'),
+                  child: Text('Set Automatic Feeding'),
                 ),
               ),
             ],
