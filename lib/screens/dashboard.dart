@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'dart:convert';
+import 'dart:async';
 import 'package:intl/intl.dart'; // For formatting DateTime
 import 'package:aquaguard/globals.dart' as globals;
 
@@ -39,31 +40,43 @@ class DashboardPageState extends State<DashboardPage> {
       });
     });
 
-    // Calculate next feeding time and remaining time
-    _calculateFeedingTimes();
+    // Start a periodic timer to calculate feeding time in real-time
+    Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel(); // Cancel the timer if the widget is no longer mounted
+      } else {
+        _calculateFeedingTimes();
+      }
+    });
   }
 
   void _calculateFeedingTimes() {
     try {
       // Parse global time and interval
-      final DateTime now = DateTime.now(); // Current time in GMT+5:30
-   
-        
+      final DateTime now = DateTime.now(); // Current time
       final int interval = int.tryParse(globals.globalInterval) ?? 0;
 
       // Calculate next feeding time
-      final DateTime nextFeedTime = lastFeedTime.add(Duration(minutes: interval));
+      DateTime nextFeedTime = lastFeedTime.add(Duration(minutes: interval));
 
-      
+      // Check if the next feed time has passed or is equal to the current time
+      if (!nextFeedTime.isAfter(now)) {
+        // Update last feed time to the current next feed time
+        lastFeedTime = nextFeedTime;
+        globals.globalTimefull = nextFeedTime; // Update the global last feed time
+
+        // Recalculate the next feed time
+        nextFeedTime = lastFeedTime.add(Duration(minutes: interval));
+      }
 
       // Calculate remaining time
       final Duration remainingDuration = nextFeedTime.difference(now);
 
       setState(() {
-        _nextFeedTime = DateFormat('yyyy-MM-dd hh:mm a').format(nextFeedTime); // Format next feed time
+        _nextFeedTime = DateFormat('yyyy-MM-dd hh:mm:ss a').format(nextFeedTime); // Format next feed time with seconds
         _timeRemaining = remainingDuration.isNegative
             ? 'Feeding overdue'
-            : '${remainingDuration.inHours} hours ${remainingDuration.inMinutes % 60} minutes';
+            : '${remainingDuration.inHours} hours ${remainingDuration.inMinutes % 60} minutes ${remainingDuration.inSeconds % 60} seconds';
       });
     } catch (e) {
       setState(() {
@@ -94,10 +107,10 @@ class DashboardPageState extends State<DashboardPage> {
               'Device ID: ${globals.globalDeviceId}',
               style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
             ),
-            Text('global time: ${globals.globalTime}'),
-            Text('global timefulll: ${globals.globalTimefull}'),
-            Text('Interval: ${globals.globalInterval}'),
-            Text('last feed time: $lastFeedTime'),
+            //Text('global time: ${globals.globalTime}'),
+            //Text('global timefulll: ${globals.globalTimefull}'),
+            //Text('Interval: ${globals.globalInterval}'),
+            //Text('last feed time: $lastFeedTime'),
 
             const SizedBox(height: 16.0),
 
@@ -113,20 +126,64 @@ class DashboardPageState extends State<DashboardPage> {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                     Text(
-                      'Next Feeding Time',
+                      'Feeding Times',
                       style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8.0),
-                    Text(
-                      'Next Feed Time: $_nextFeedTime',
-                      style: TextStyle(fontSize: 16.0),
-                      textAlign: TextAlign.center,
-                    ),
-                    Text(
-                      'Time Remaining: $_timeRemaining',
-                      style: TextStyle(fontSize: 16.0),
-                      textAlign: TextAlign.center,
+                    Column(
+                      children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                        Icon(Icons.access_time, color: Colors.blue, size: 24.0),
+                        Text(
+                          'Last Fed Time',
+                          style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+                        ),
+                        ],
+                      ),
+                      const SizedBox(height: 8.0),
+                      Text(
+                        DateFormat('yyyy-MM-dd hh:mm:ss a').format(lastFeedTime),
+                        style: TextStyle(fontSize: 16.0, color: Colors.grey[700]),
+                        textAlign: TextAlign.center,
+                      ),
+                      const Divider(height: 24.0, thickness: 1.0),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                        Icon(Icons.schedule, color: Colors.green, size: 24.0),
+                        Text(
+                          'Next Feed Time',
+                          style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+                        ),
+                        ],
+                      ),
+                      const SizedBox(height: 8.0),
+                      Text(
+                        _nextFeedTime,
+                        style: TextStyle(fontSize: 16.0, color: Colors.grey[700]),
+                        textAlign: TextAlign.center,
+                      ),
+                      const Divider(height: 24.0, thickness: 1.0),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                        Icon(Icons.timer, color: Colors.red, size: 24.0),
+                        Text(
+                          'Time Remaining',
+                          style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+                        ),
+                        ],
+                      ),
+                      const SizedBox(height: 8.0),
+                      Text(
+                        _timeRemaining,
+                        style: TextStyle(fontSize: 16.0, color: Colors.grey[700]),
+                        textAlign: TextAlign.center,
+                      ),
+                      ],
                     ),
                   ],
                 ),

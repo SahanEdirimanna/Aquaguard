@@ -251,7 +251,7 @@ class SettingsPageState extends State<SettingsPage> {
                     controller: TextEditingController(text: _selectedTime),
                     decoration: InputDecoration(
                       border: OutlineInputBorder(),
-                      labelText: 'Select Time',
+                      labelText: 'Feeding start time',
                       suffixIcon: Icon(Icons.access_time),
                     ),
                   ),
@@ -263,28 +263,28 @@ class SettingsPageState extends State<SettingsPage> {
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   border: OutlineInputBorder(),
-                  labelText: 'Enter Interval',
+                  labelText: 'Enter Interval need to be fed',
                 ),
               ),
-              const SizedBox(height: 16.0),
-              TextField(
-                controller: _tankSizeController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(),
-                  labelText: 'Enter Tank Size',
-                ),
-              ),
-              const SizedBox(height: 16.0),
-              TextField(
-                controller: _lightIntensityController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(),
-                  labelText: 'Enter Light Intensity',
-                ),
-              ),
-              const SizedBox(height: 16.0),
+                // const SizedBox(height: 16.0),
+                // TextField(
+                //   controller: _tankSizeController,
+                //   keyboardType: TextInputType.number,
+                //   decoration: InputDecoration(
+                //     border: OutlineInputBorder(),
+                //     labelText: 'Enter Tank Size',
+                //   ),
+                // ),
+                // const SizedBox(height: 16.0),
+                // TextField(
+                //   controller: _lightIntensityController,
+                //   keyboardType: TextInputType.number,
+                //   decoration: InputDecoration(
+                //     border: OutlineInputBorder(),
+                //     labelText: 'Enter Light Intensity',
+                //   ),
+                // ),
+                // const SizedBox(height: 16.0),
               Center(
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
