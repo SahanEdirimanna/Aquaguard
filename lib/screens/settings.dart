@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:aquaguard/globals.dart'; // Import the global variable
+import 'package:intl/intl.dart'; // For formatting time
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -16,7 +17,6 @@ class SettingsPageState extends State<SettingsPage> {
   final TextEditingController _fishTypeCountController = TextEditingController();
 
   // Tank Parameters Controllers
-  final TextEditingController _timeController = TextEditingController();
   final TextEditingController _intervalController = TextEditingController();
   final TextEditingController _tankSizeController = TextEditingController();
   final TextEditingController _lightIntensityController = TextEditingController();
@@ -25,10 +25,11 @@ class SettingsPageState extends State<SettingsPage> {
   List<Map<String, dynamic>> _fishInputs = [];
   final List<String> _fishNames = ['Goldfish', 'Koi', 'Guppy', 'Tetra', 'Angelfish'];
 
+  String _selectedTime = globalTime; // Store the selected time as a string
+
   @override
   void initState() {
     super.initState();
-    _timeController.text = globalTime; // Pre-fill with global time
     _intervalController.text = globalInterval; // Pre-fill with global interval
 
     _fishDetailsChannel = WebSocketChannel.connect(
@@ -37,6 +38,25 @@ class SettingsPageState extends State<SettingsPage> {
     _tankParametersChannel = WebSocketChannel.connect(
       Uri.parse('ws://159.89.173.231:1880/ws/settings/tank_parameters'),
     );
+  }
+
+  Future<void> _selectTime(BuildContext context) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+
+    if (picked != null) {
+      final now = DateTime.now();
+      final selectedDateTime = DateTime(now.year, now.month, now.day, picked.hour, picked.minute);
+      final formattedTime = DateFormat('hh:mm a').format(selectedDateTime);
+
+      setState(() {
+        _selectedTime = formattedTime; // Update the selected time
+        globalTime = formattedTime;
+        globalTimefull = selectedDateTime; // Update the global time as a string
+      });
+    }
   }
 
   void _generateFishInputs() {
@@ -75,24 +95,22 @@ class SettingsPageState extends State<SettingsPage> {
 
   void _sendTankParameters() {
     final deviceId = globalDeviceId; // Use the global device ID
-    final time = _timeController.text.trim();
     final interval = _intervalController.text.trim();
     final tankSize = _tankSizeController.text.trim();
     final lightIntensity = _lightIntensityController.text.trim();
 
     // Update global variables
-    globalTime = time;
     globalInterval = interval;
 
     final message = {
       'device_id': deviceId,
-      'time': time,
+      'time': _selectedTime,
       'interval': interval,
       'tank_size': tankSize,
       'light_intensity': lightIntensity,
     };
 
-    if (deviceId.isNotEmpty && time.isNotEmpty && interval.isNotEmpty && tankSize.isNotEmpty && lightIntensity.isNotEmpty) {
+    if (deviceId.isNotEmpty && _selectedTime.isNotEmpty && interval.isNotEmpty ) {
       _tankParametersChannel.sink.add(message.toString());
     }
   }
@@ -103,7 +121,6 @@ class SettingsPageState extends State<SettingsPage> {
     _tankParametersChannel.sink.close();
 
     _fishTypeCountController.dispose();
-    _timeController.dispose();
     _intervalController.dispose();
     _tankSizeController.dispose();
     _lightIntensityController.dispose();
@@ -227,11 +244,17 @@ class SettingsPageState extends State<SettingsPage> {
               const SizedBox(height: 32.0),
 
               // Tank Parameters Section
-              TextField(
-                controller: _timeController,
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(),
-                  labelText: 'Enter Time (e.g., 8:30 PM)',
+              GestureDetector(
+                onTap: () => _selectTime(context),
+                child: AbsorbPointer(
+                  child: TextField(
+                    controller: TextEditingController(text: _selectedTime),
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: 'Select Time',
+                      suffixIcon: Icon(Icons.access_time),
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 16.0),

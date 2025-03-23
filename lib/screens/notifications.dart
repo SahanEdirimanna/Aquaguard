@@ -32,7 +32,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
           _generalNotifications.add(decodedMessage); // Add parsed message to the list
         });
       } catch (e) {
-        print('Error decoding general notification: $e'); // Handle invalid JSON
+        //print('Error decoding general notification: $e'); // Handle invalid JSON
       }
     });
 
@@ -44,7 +44,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
           _criticalNotifications.add(decodedMessage); // Add parsed message to the list
         });
       } catch (e) {
-        print('Error decoding critical notification: $e'); // Handle invalid JSON
+        //print('Error decoding critical notification: $e'); // Handle invalid JSON
       }
     });
   }
@@ -109,7 +109,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                       },
                     ),
                   );
-                }).toList(),
+                }),
                 if (_generalNotifications.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.all(8.0),
@@ -148,7 +148,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                       },
                     ),
                   );
-                }).toList(),
+                }),
               ],
             ),
     );

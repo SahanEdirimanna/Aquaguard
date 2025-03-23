@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-//import 'screens/weather.dart'; // Import the WebSocket page
-//import 'screens/conversation.dart'; // Import the Conversation page
-import 'screens/homepage.dart'; // Import the Home page
+
+//importing the screens
+import 'screens/homepage.dart'; 
 import 'screens/dashboard.dart';
 import 'screens/marketplace.dart';
-import 'screens/notifications.dart' as notifications;
+import 'screens/notifications.dart';
 import '/screens/settings.dart';
+
 
 void main() {
   runApp(const MyApp());
@@ -40,7 +41,7 @@ class _MainPageState extends State<MainPage> {
     HomePage(), // Use the HomePage widget
     DashboardPage(), // Use the WebSocketPage widget
     MarketplacePage(), 
-    notifications.NotificationsPage(), // Use the NotificationsPage widget
+    NotificationsPage(), // Use the NotificationsPage widget
     SettingsPage()// Use the ConversationPage widget
   ];
 

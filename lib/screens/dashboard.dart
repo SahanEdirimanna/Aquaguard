@@ -21,8 +21,8 @@ class DashboardPageState extends State<DashboardPage> {
   String _timeRemaining = 'Calculating...';
 
   // Define lastFeedTime with a default value
-  DateTime lastFeedTime = DateTime.now().toUtc().add(const Duration(hours: 5, minutes: 30)); // Example: Current time in GMT+5:30
-  //DateTime lastFeedTime = DateFormat('yyyy-MM-dd HH:mm:ss').parse(globals.globalTime);
+  //DateTime lastFeedTime = DateTime.now().toUtc().add(const Duration(hours: 5, minutes: 30)); // Example: Current time in GMT+5:30
+  DateTime lastFeedTime = globals.globalTimefull;
 
   @override
   void initState() {
@@ -46,13 +46,15 @@ class DashboardPageState extends State<DashboardPage> {
   void _calculateFeedingTimes() {
     try {
       // Parse global time and interval
-      final DateTime now = DateTime.now().toUtc().add(const Duration(hours: 5, minutes: 30)); // Current time in GMT+5:30
+      final DateTime now = DateTime.now(); // Current time in GMT+5:30
    
         
       final int interval = int.tryParse(globals.globalInterval) ?? 0;
 
       // Calculate next feeding time
-      final DateTime nextFeedTime = lastFeedTime.add(Duration(hours: interval));
+      final DateTime nextFeedTime = lastFeedTime.add(Duration(minutes: interval));
+
+      
 
       // Calculate remaining time
       final Duration remainingDuration = nextFeedTime.difference(now);
@@ -92,8 +94,11 @@ class DashboardPageState extends State<DashboardPage> {
               'Device ID: ${globals.globalDeviceId}',
               style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
             ),
-            //Text('Time: ${globals.globalTime}'),
-            //Text('Interval: ${globals.globalInterval}'),
+            Text('global time: ${globals.globalTime}'),
+            Text('global timefulll: ${globals.globalTimefull}'),
+            Text('Interval: ${globals.globalInterval}'),
+            Text('last feed time: $lastFeedTime'),
+
             const SizedBox(height: 16.0),
 
             // Feeding Time Panel
