@@ -56,56 +56,77 @@ class DashboardPageState extends State<DashboardPage> {
   }
 
   void _calculateFeedingTimes() {
-    try {
-      // Parse global time and interval
-      final DateTime now = DateTime.now(); // Current time
-      final int interval = int.tryParse(globals.globalInterval) ?? 0;
+  try {
+    final DateTime now = DateTime.now(); // Get current time
+    final int interval = int.tryParse(globals.globalInterval) ?? 0;
 
-      // Calculate next feeding time
-      DateTime nextFeedTime = lastFeedTime.add(Duration(minutes: interval));
+    // If lastFeedTime is set in the future, wait until it's time
+    if (lastFeedTime.isAfter(now)) {
+      final Duration remainingDuration = lastFeedTime.difference(now);
+      
+      setState(() {
+      _nextFeedTime = DateFormat('yyyy-MM-dd hh:mm:ss a').format(lastFeedTime);
+      _timeRemaining = '${remainingDuration.inHours} H ${remainingDuration.inMinutes % 60} Min ${remainingDuration.inSeconds % 60} Sec';
+      });
 
-      // Check if the next feed time has passed or is equal to the current time
-      if (!nextFeedTime.isAfter(now)) {
-        if (lastFeedTime.isBefore(now) || lastFeedTime.isAtSameMomentAs(now)) {
-          // Send a feeding message through the WebSocket
-          _feedingChannel.sink.add('Feeding fish now');
+      // Check if the remaining duration is very close to zero
+      if (remainingDuration.inSeconds == 0) {
+        // Send feeding message via WebSocket
+       _feedingChannel.sink.add('Future Set time reached! Feeding fish now');
 
-          // Show SnackBar
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Feeding fish now'),
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
-
-        // Update last feed time to the current next feed time
-        lastFeedTime = nextFeedTime;
-        globals.globalTimefull = nextFeedTime; // Update the global last feed time
-
-        // Recalculate the next feed time
-        nextFeedTime = lastFeedTime.add(Duration(minutes: interval));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+        content: Text('Future Set time reached! Feeding fish now'),
+        duration: Duration(seconds: 2),
+        ),
+      );
       }
 
-      // Calculate remaining time
-      final Duration remainingDuration = lastFeedTime.isBefore(now)
-          ? nextFeedTime.difference(now)
-          : lastFeedTime.difference(now);
-
-      setState(() {
-        _nextFeedTime = DateFormat('yyyy-MM-dd hh:mm:ss a').format(nextFeedTime); // Format next feed time with seconds
-        _timeRemaining = remainingDuration.isNegative
-            ? 'Feeding overdue'
-            : '${remainingDuration.inHours} H ${remainingDuration.inMinutes % 60} Min ${remainingDuration.inSeconds % 60} Sec';
-      });
-    } catch (e) {
-      setState(() {
-        _nextFeedTime = 'Error calculating time';
-        _timeRemaining = 'Error calculating time';
-      });
+      return; // Exit function early to avoid unnecessary feeding
     }
-  }
 
+    // Calculate next feed time
+    DateTime nextFeedTime = lastFeedTime.add(Duration(seconds: interval));
+
+    // If it's time to feed the fish
+    if (!nextFeedTime.isAfter(now)) {
+      // Send feeding message via WebSocket
+      _feedingChannel.sink.add('Feeding fish now');
+
+      // Show SnackBar notification
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Feeding fish now'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      // Update lastFeedTime to the existing nextFeedTime
+      lastFeedTime = nextFeedTime;
+      globals.globalTimefull = nextFeedTime; // Update global last feed time
+
+      // Recalculate next feeding time
+      nextFeedTime = lastFeedTime.add(Duration(seconds: interval));
+    }
+
+    // Calculate remaining time until next feeding
+    final Duration remainingDuration = nextFeedTime.difference(now);
+
+    // Update UI with next feeding time
+    setState(() {
+      _nextFeedTime = DateFormat('yyyy-MM-dd hh:mm:ss a').format(nextFeedTime);
+      _timeRemaining = remainingDuration.isNegative
+          ? 'Feeding overdue'
+          : '${remainingDuration.inHours} H ${remainingDuration.inMinutes % 60} Min ${remainingDuration.inSeconds % 60} Sec';
+    });
+
+  } catch (e) {
+    setState(() {
+      _nextFeedTime = 'Error calculating time';
+      _timeRemaining = 'Error calculating time';
+    });
+  }
+}
   @override
   void dispose() {
     _dataChannel.sink.close();
@@ -161,46 +182,65 @@ class DashboardPageState extends State<DashboardPage> {
                     Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Row(
+                        if (lastFeedTime.isAfter(DateTime.now()))
+                          Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(Icons.access_time, color: Colors.blue, size: 20.0),
                             SizedBox(width: 8.0),
                             Text(
-                              lastFeedTime.isBefore(DateTime.now())
-                                  ? 'Last Fed Time :'
-                                  : 'Next Feeding Time :',
-                              style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold),
-                              textAlign: TextAlign.center,
+                            'Future Feeding Time :',
+                            style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
                             ),
                             SizedBox(width: 8.0),
                             Text(
-                              DateFormat('yyyy-MM-dd hh:mm:ss a').format(lastFeedTime),
-                              style: TextStyle(fontSize: 14.0, color: Colors.grey[700]),
-                              textAlign: TextAlign.center,
+                            DateFormat('yyyy-MM-dd hh:mm:ss a').format(lastFeedTime),
+                            style: TextStyle(fontSize: 14.0, color: Colors.grey[700]),
+                            textAlign: TextAlign.center,
                             ),
                           ],
-                        ),
-                        const SizedBox(height: 8.0),
-                        const Divider(height: 16.0, thickness: 0.5),
-                        Row(
+                          )
+                        else ...[
+                          Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.access_time, color: Colors.blue, size: 20.0),
+                            SizedBox(width: 8.0),
+                            Text(
+                            'Last Fed Time :',
+                            style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
+                            ),
+                            SizedBox(width: 8.0),
+                            Text(
+                            DateFormat('yyyy-MM-dd hh:mm:ss a').format(lastFeedTime),
+                            style: TextStyle(fontSize: 14.0, color: Colors.grey[700]),
+                            textAlign: TextAlign.center,
+                            ),
+                          ],
+                          ),
+                          const SizedBox(height: 8.0),
+                          const Divider(height: 16.0, thickness: 0.5),
+                          Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(Icons.schedule, color: Colors.green, size: 20.0),
                             SizedBox(width: 8.0),
                             Text(
-                              'Up next Feed Time :',
-                              style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold),
-                              textAlign: TextAlign.center,
+                            'Next Feeding Time :',
+                            style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
                             ),
                             SizedBox(width: 8.0),
                             Text(
-                              _nextFeedTime,
-                              style: TextStyle(fontSize: 14.0, color: Colors.grey[700]),
-                              textAlign: TextAlign.center,
+                            _nextFeedTime,
+                            style: TextStyle(fontSize: 14.0, color: Colors.grey[700]),
+                            textAlign: TextAlign.center,
                             ),
                           ],
-                        ),
+                          ),
+                        ],
                         const Divider(height: 16.0, thickness: 0.5),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
