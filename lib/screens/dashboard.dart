@@ -61,6 +61,16 @@ class DashboardPageState extends State<DashboardPage> {
 
       // Check if the next feed time has passed or is equal to the current time
       if (!nextFeedTime.isAfter(now)) {
+
+        if (lastFeedTime.isBefore(now) || lastFeedTime.isAtSameMomentAs(now)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Feeding fish now'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+
         // Update last feed time to the current next feed time
         lastFeedTime = nextFeedTime;
         globals.globalTimefull = nextFeedTime; // Update the global last feed time
@@ -68,6 +78,23 @@ class DashboardPageState extends State<DashboardPage> {
         // Recalculate the next feed time
         nextFeedTime = lastFeedTime.add(Duration(minutes: interval));
       }
+
+    // if (lastFeedTime.isAfter(now)) {
+    //   bool snackBarShown = false; // Flag to ensure SnackBar is shown only once
+    //   Timer.periodic(const Duration(milliseconds: 500), (timer) {
+    //     if (!snackBarShown && (lastFeedTime.isBefore(DateTime.now()) || lastFeedTime.isAtSameMomentAs(DateTime.now()))) {
+    //       ScaffoldMessenger.of(context).showSnackBar(
+    //         SnackBar(
+    //           content: Text('Feeding fish now (future time reached)'),
+    //           duration: Duration(seconds: 2),
+    //         ),
+    //       );
+    //       snackBarShown = true; // Set the flag to true after showing the SnackBar
+    //       globals.globalTimefull = lastFeedTime; // Update the global last feed time
+    //       timer.cancel(); // Stop the timer after showing the SnackBar
+    //     }
+    //   });
+    // }
 
       // Calculate remaining time
       final Duration remainingDuration = lastFeedTime.isBefore(now)
@@ -149,8 +176,8 @@ class DashboardPageState extends State<DashboardPage> {
                     SizedBox(width: 8.0), // Spacing between icon and text
                     Text(
                       lastFeedTime.isBefore(DateTime.now())
-                        ? 'Last Fed Time'
-                        : 'Next Feeding Time',
+                        ? 'Last Fed Time :'
+                        : 'Next Feeding Time :',
                       style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold), // Text
                       textAlign: TextAlign.center,
                     ),
@@ -170,7 +197,7 @@ class DashboardPageState extends State<DashboardPage> {
                     Icon(Icons.schedule, color: Colors.green, size: 20.0), // Icon
                     SizedBox(width: 8.0), // Spacing between icon and text
                     Text(
-                      'Up next Feed Time ',
+                      'Up next Feed Time :',
                       style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold), // Text
                       textAlign: TextAlign.center,
                     ),
@@ -189,7 +216,7 @@ class DashboardPageState extends State<DashboardPage> {
                     Icon(Icons.timer, color: Colors.red, size: 20.0), // Icon
                     SizedBox(width: 8.0), // Spacing between icon and text
                     Text(
-                      'Time Remaining',
+                      'Time Remaining :',
                       style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold), // Text
                       textAlign: TextAlign.center,
                     ),
