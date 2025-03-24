@@ -1,8 +1,6 @@
-import 'dart:convert'; // For JSON decoding
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
-import 'package:web_socket_channel/status.dart' as status;
-import 'package:aquaguard/globals.dart' as globals;
+import 'package:aquaguard/websocket_manager.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -12,63 +10,36 @@ class NotificationsPage extends StatefulWidget {
 }
 
 class _NotificationsPageState extends State<NotificationsPage> {
-  final WebSocketChannel _generalChannel =
-      WebSocketChannel.connect(Uri.parse('ws://159.89.173.231:1880/ws/notifications/general/${globals.globalDeviceId}'));
-  final WebSocketChannel _criticalChannel =
-      WebSocketChannel.connect(Uri.parse('ws://159.89.173.231:1880/ws/notifications/critical/${globals.globalDeviceId}'));
-
-  final List<Map<String, dynamic>> _generalNotifications = []; // Store general notifications
-  final List<Map<String, dynamic>> _criticalNotifications = []; // Store critical notifications
+  final WebSocketManager _webSocketManager = WebSocketManager();
+  late Timer _timer;
 
   @override
   void initState() {
     super.initState();
-
-    // Listen to general notifications
-    _generalChannel.stream.listen((message) {
-      try {
-        final decodedMessage = jsonDecode(message); // Parse JSON message
-        setState(() {
-          _generalNotifications.add(decodedMessage); // Add parsed message to the list
-        });
-      } catch (e) {
-        //print('Error decoding general notification: $e'); // Handle invalid JSON
-      }
-    });
-
-    // Listen to critical notifications
-    _criticalChannel.stream.listen((message) {
-      try {
-        final decodedMessage = jsonDecode(message); // Parse JSON message
-        setState(() {
-          _criticalNotifications.add(decodedMessage); // Add parsed message to the list
-        });
-      } catch (e) {
-        //print('Error decoding critical notification: $e'); // Handle invalid JSON
-      }
+    // Start a timer to refresh the page every second
+    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+      setState(() {
+        // Trigger a rebuild to fetch new notifications
+      });
     });
   }
 
   @override
   void dispose() {
-    _generalChannel.sink.close(status.goingAway);
-    _criticalChannel.sink.close(status.goingAway);
+    _timer.cancel(); // Cancel the timer when the widget is disposed
     super.dispose();
-  }
-
-  void _removeNotification(List<Map<String, dynamic>> notifications, int index) {
-    setState(() {
-      notifications.removeAt(index);
-    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final generalNotifications = _webSocketManager.generalNotifications;
+    final criticalNotifications = _webSocketManager.criticalNotifications;
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Notifications'),
       ),
-      body: _generalNotifications.isEmpty && _criticalNotifications.isEmpty
+      body: generalNotifications.isEmpty && criticalNotifications.isEmpty
           ? Center(
               child: Text(
                 'No notifications yet',
@@ -77,7 +48,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
             )
           : ListView(
               children: [
-                if (_criticalNotifications.isNotEmpty)
+                if (criticalNotifications.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: Text(
@@ -85,13 +56,15 @@ class _NotificationsPageState extends State<NotificationsPage> {
                       style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold, color: Colors.red),
                     ),
                   ),
-                ..._criticalNotifications.asMap().entries.map((entry) {
+                ...criticalNotifications.asMap().entries.map((entry) {
                   final index = entry.key;
                   final notification = entry.value;
                   return Dismissible(
                     key: UniqueKey(),
                     onDismissed: (direction) {
-                      _removeNotification(_criticalNotifications, index);
+                      setState(() {
+                        criticalNotifications.removeAt(index);
+                      });
                     },
                     background: Container(color: Colors.red),
                     child: Card(
@@ -118,14 +91,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
                               ),
                           ],
                         ),
-                        onTap: () {
-                          // Handle critical notification tap (e.g., show details)
-                        },
                       ),
                     ),
                   );
                 }),
-                if (_generalNotifications.isNotEmpty)
+                if (generalNotifications.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: Text(
@@ -133,13 +103,15 @@ class _NotificationsPageState extends State<NotificationsPage> {
                       style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold, color: Colors.blue),
                     ),
                   ),
-                ..._generalNotifications.asMap().entries.map((entry) {
+                ...generalNotifications.asMap().entries.map((entry) {
                   final index = entry.key;
                   final notification = entry.value;
                   return Dismissible(
                     key: UniqueKey(),
                     onDismissed: (direction) {
-                      _removeNotification(_generalNotifications, index);
+                      setState(() {
+                        generalNotifications.removeAt(index);
+                      });
                     },
                     background: Container(color: Colors.red),
                     child: Card(
@@ -166,9 +138,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
                               ),
                           ],
                         ),
-                        onTap: () {
-                          // Handle general notification tap (e.g., show details)
-                        },
                       ),
                     ),
                   );
