@@ -70,7 +70,9 @@ class DashboardPageState extends State<DashboardPage> {
       }
 
       // Calculate remaining time
-      final Duration remainingDuration = nextFeedTime.difference(now);
+      final Duration remainingDuration = lastFeedTime.isBefore(now)
+          ? nextFeedTime.difference(now)
+          : lastFeedTime.difference(now);
 
       setState(() {
         _nextFeedTime = DateFormat('yyyy-MM-dd hh:mm:ss a').format(nextFeedTime); // Format next feed time with seconds
