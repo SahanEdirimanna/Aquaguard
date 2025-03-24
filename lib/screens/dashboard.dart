@@ -15,6 +15,7 @@ class DashboardPage extends StatefulWidget {
 
 class DashboardPageState extends State<DashboardPage> {
   late WebSocketChannel _dataChannel;
+  late WebSocketChannel _feedingChannel; // WebSocket for feeding notifications
 
   Map<String, dynamic> _data = {};
 
@@ -22,7 +23,6 @@ class DashboardPageState extends State<DashboardPage> {
   String _timeRemaining = 'Calculating...';
 
   // Define lastFeedTime with a default value
-  //DateTime lastFeedTime = DateTime.now().toUtc().add(const Duration(hours: 5, minutes: 30)); // Example: Current time in GMT+5:30
   DateTime lastFeedTime = globals.globalTimefull;
 
   @override
@@ -32,6 +32,11 @@ class DashboardPageState extends State<DashboardPage> {
     // WebSocket for dashboard data
     _dataChannel = WebSocketChannel.connect(
       Uri.parse('ws://159.89.173.231:1880/ws/dashboard/data/${globals.globalDeviceId}'),
+    );
+
+    // WebSocket for feeding notifications
+    _feedingChannel = WebSocketChannel.connect(
+      Uri.parse('ws://159.89.173.231:1880/ws/dashboard/feeding/${globals.globalDeviceId}'),
     );
 
     _dataChannel.stream.listen((message) {
@@ -61,15 +66,18 @@ class DashboardPageState extends State<DashboardPage> {
 
       // Check if the next feed time has passed or is equal to the current time
       if (!nextFeedTime.isAfter(now)) {
-
         if (lastFeedTime.isBefore(now) || lastFeedTime.isAtSameMomentAs(now)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Feeding fish now'),
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
+          // Send a feeding message through the WebSocket
+          _feedingChannel.sink.add('Feeding fish now');
+
+          // Show SnackBar
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Feeding fish now'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
 
         // Update last feed time to the current next feed time
         lastFeedTime = nextFeedTime;
@@ -78,23 +86,6 @@ class DashboardPageState extends State<DashboardPage> {
         // Recalculate the next feed time
         nextFeedTime = lastFeedTime.add(Duration(minutes: interval));
       }
-
-    // if (lastFeedTime.isAfter(now)) {
-    //   bool snackBarShown = false; // Flag to ensure SnackBar is shown only once
-    //   Timer.periodic(const Duration(milliseconds: 500), (timer) {
-    //     if (!snackBarShown && (lastFeedTime.isBefore(DateTime.now()) || lastFeedTime.isAtSameMomentAs(DateTime.now()))) {
-    //       ScaffoldMessenger.of(context).showSnackBar(
-    //         SnackBar(
-    //           content: Text('Feeding fish now (future time reached)'),
-    //           duration: Duration(seconds: 2),
-    //         ),
-    //       );
-    //       snackBarShown = true; // Set the flag to true after showing the SnackBar
-    //       globals.globalTimefull = lastFeedTime; // Update the global last feed time
-    //       timer.cancel(); // Stop the timer after showing the SnackBar
-    //     }
-    //   });
-    // }
 
       // Calculate remaining time
       final Duration remainingDuration = lastFeedTime.isBefore(now)
@@ -105,7 +96,7 @@ class DashboardPageState extends State<DashboardPage> {
         _nextFeedTime = DateFormat('yyyy-MM-dd hh:mm:ss a').format(nextFeedTime); // Format next feed time with seconds
         _timeRemaining = remainingDuration.isNegative
             ? 'Feeding overdue'
-            : '${remainingDuration.inHours} hours ${remainingDuration.inMinutes % 60} minutes ${remainingDuration.inSeconds % 60} seconds';
+            : '${remainingDuration.inHours} H ${remainingDuration.inMinutes % 60} Min ${remainingDuration.inSeconds % 60} Sec';
       });
     } catch (e) {
       setState(() {
@@ -118,6 +109,7 @@ class DashboardPageState extends State<DashboardPage> {
   @override
   void dispose() {
     _dataChannel.sink.close();
+    _feedingChannel.sink.close(); // Close the feeding WebSocket
     super.dispose();
   }
 
@@ -147,91 +139,91 @@ class DashboardPageState extends State<DashboardPage> {
             Card(
               elevation: 4.0,
               shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12.0),
+                borderRadius: BorderRadius.circular(12.0),
               ),
               child: Padding(
-              padding: const EdgeInsets.all(8.0), // Reduced padding
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.center, // Center the components vertically
-                mainAxisSize: MainAxisSize.min, // Adjust size to fit content
-                children: [
-                Text(
-                  'Feeding Times',
-                  style: TextStyle(
-                  fontSize: 16.0,
-                  fontWeight: FontWeight.bold,
-                  color: Color.fromARGB(255, 91, 31, 229), // Highlighted with blue color
-                  ), // Smaller font size
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8.0), // Adjusted spacing
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center, // Center the rows vertically
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center, // Center the row horizontally
-                    children: [
-                    Icon(Icons.access_time, color: Colors.blue, size: 20.0), // Icon
-                    SizedBox(width: 8.0), // Spacing between icon and text
                     Text(
-                      lastFeedTime.isBefore(DateTime.now())
-                        ? 'Last Fed Time :'
-                        : 'Next Feeding Time :',
-                      style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold), // Text
+                      'Feeding Times',
+                      style: TextStyle(
+                        fontSize: 16.0,
+                        fontWeight: FontWeight.bold,
+                        color: Color.fromARGB(255, 91, 31, 229),
+                      ),
                       textAlign: TextAlign.center,
                     ),
-                    SizedBox(width: 8.0), // Spacing between text and time
-                    Text(
-                      DateFormat('yyyy-MM-dd hh:mm:ss a').format(lastFeedTime),
-                      style: TextStyle(fontSize: 14.0, color: Colors.grey[700]), // Smaller font size
-                      textAlign: TextAlign.center,
+                    const SizedBox(height: 8.0),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.access_time, color: Colors.blue, size: 20.0),
+                            SizedBox(width: 8.0),
+                            Text(
+                              lastFeedTime.isBefore(DateTime.now())
+                                  ? 'Last Fed Time :'
+                                  : 'Next Feeding Time :',
+                              style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold),
+                              textAlign: TextAlign.center,
+                            ),
+                            SizedBox(width: 8.0),
+                            Text(
+                              DateFormat('yyyy-MM-dd hh:mm:ss a').format(lastFeedTime),
+                              style: TextStyle(fontSize: 14.0, color: Colors.grey[700]),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8.0),
+                        const Divider(height: 16.0, thickness: 0.5),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.schedule, color: Colors.green, size: 20.0),
+                            SizedBox(width: 8.0),
+                            Text(
+                              'Up next Feed Time :',
+                              style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold),
+                              textAlign: TextAlign.center,
+                            ),
+                            SizedBox(width: 8.0),
+                            Text(
+                              _nextFeedTime,
+                              style: TextStyle(fontSize: 14.0, color: Colors.grey[700]),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                        const Divider(height: 16.0, thickness: 0.5),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.timer, color: Colors.red, size: 20.0),
+                            SizedBox(width: 8.0),
+                            Text(
+                              'Time Remaining :',
+                              style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold),
+                              textAlign: TextAlign.center,
+                            ),
+                            SizedBox(width: 8.0),
+                            Text(
+                              _timeRemaining,
+                              style: TextStyle(fontSize: 14.0, color: Colors.grey[700]),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    ],
-                  ),
-                  const SizedBox(height: 8.0), // Adjusted spacing
-                  const Divider(height: 16.0, thickness: 0.5), // Reduced divider height
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center, // Center the row horizontally
-                    children: [
-                    Icon(Icons.schedule, color: Colors.green, size: 20.0), // Icon
-                    SizedBox(width: 8.0), // Spacing between icon and text
-                    Text(
-                      'Up next Feed Time :',
-                      style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold), // Text
-                      textAlign: TextAlign.center,
-                    ),
-                    SizedBox(width: 8.0), // Spacing between text and time
-                    Text(
-                      _nextFeedTime,
-                      style: TextStyle(fontSize: 14.0, color: Colors.grey[700]), // Smaller font size
-                      textAlign: TextAlign.center,
-                    ),
-                    ],
-                  ),
-                  const Divider(height: 16.0, thickness: 0.5), // Reduced divider height
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center, // Center the row horizontally
-                    children: [
-                    Icon(Icons.timer, color: Colors.red, size: 20.0), // Icon
-                    SizedBox(width: 8.0), // Spacing between icon and text
-                    Text(
-                      'Time Remaining :',
-                      style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold), // Text
-                      textAlign: TextAlign.center,
-                    ),
-                    SizedBox(width: 8.0), // Spacing between text and time
-                    Text(
-                      _timeRemaining,
-                      style: TextStyle(fontSize: 14.0, color: Colors.grey[700]), // Smaller font size
-                      textAlign: TextAlign.center,
-                    ),
-                    ],
-                  ),
                   ],
                 ),
-                ],
-              ),
               ),
             ),
             const SizedBox(height: 16.0),
