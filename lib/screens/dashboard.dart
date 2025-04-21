@@ -351,6 +351,11 @@ class DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildTemperatureChart() {
+    // Limit the data to the last 10 points
+    final limitedTemperatureData = temperatureData.length > 10
+        ? temperatureData.sublist(temperatureData.length - 10)
+        : temperatureData;
+
     return Card(
       elevation: 4.0,
       shape: RoundedRectangleBorder(
@@ -363,8 +368,8 @@ class DashboardPageState extends State<DashboardPage> {
           children: [
             Center(
               child: Text(
-              'Time vs Temperature',
-              style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+                'Time vs Temperature',
+                style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
               ),
             ),
             const SizedBox(height: 16.0),
@@ -372,29 +377,48 @@ class DashboardPageState extends State<DashboardPage> {
               height: 200.0, // Set the height of the chart
               child: LineChart(
                 LineChartData(
-                  gridData: FlGridData(show: true),
+                  gridData: FlGridData(show: true), // Hide grid lines
                   titlesData: FlTitlesData(
                     leftTitles: AxisTitles(
-                      sideTitles: SideTitles(showTitles: true),
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 40,
+                        getTitlesWidget: (value, meta) => Text(
+                          value.toStringAsFixed(1), // Show y-axis values
+                          style: TextStyle(fontSize: 10.0),
+                        ),
+                      ),
+                    ),
+                    rightTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false), // Hide right titles
+                    ),
+                    topTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false), // Hide top titles
                     ),
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
                         getTitlesWidget: (value, meta) {
                           final index = value.toInt();
-                          if (index >= 0 && index < temperatureData.length) {
-                            final time = temperatureData[index]['time'] as DateTime;
-                            return Text('${time.hour}:${time.minute}');
+                          if (index >= 0 && index < limitedTemperatureData.length) {
+                            final time = limitedTemperatureData[index]['time'] as DateTime;
+                            return Text(
+                              DateFormat('HH:mm').format(time), // Show x-axis values
+                              style: TextStyle(fontSize: 10.0),
+                            );
                           }
                           return const Text('');
                         },
                       ),
                     ),
                   ),
-                  borderData: FlBorderData(show: true),
+                  borderData: FlBorderData(
+                    show: true,
+                    border: Border.all(color: Colors.black, width: 1),
+                  ),
                   lineBarsData: [
                     LineChartBarData(
-                      spots: temperatureData
+                      spots: limitedTemperatureData
                           .asMap()
                           .entries
                           .map((entry) => FlSpot(
