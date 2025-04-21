@@ -1,10 +1,10 @@
-//import 'package:aquaguard/globals.dart';
 import 'package:flutter/material.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'dart:convert';
 import 'dart:async';
 import 'package:intl/intl.dart'; // For formatting DateTime
 import 'package:aquaguard/globals.dart' as globals;
+import 'package:fl_chart/fl_chart.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -25,6 +25,14 @@ class DashboardPageState extends State<DashboardPage> {
   // Define lastFeedTime with a default value
   DateTime lastFeedTime = globals.globalTimefull;
 
+  List<Map<String, dynamic>> temperatureData = [
+    {'time': DateTime.now().subtract(Duration(minutes: 10)), 'temperature': 25.0},
+    {'time': DateTime.now().subtract(Duration(minutes: 8)), 'temperature': 26.5},
+    {'time': DateTime.now().subtract(Duration(minutes: 6)), 'temperature': 27.0},
+    {'time': DateTime.now().subtract(Duration(minutes: 4)), 'temperature': 26.8},
+    {'time': DateTime.now().subtract(Duration(minutes: 2)), 'temperature': 27.5},
+  ]; // Data for temperature chart
+
   @override
   void initState() {
     super.initState();
@@ -40,8 +48,22 @@ class DashboardPageState extends State<DashboardPage> {
     );
 
     _dataChannel.stream.listen((message) {
+      final decodedMessage = jsonDecode(message);
       setState(() {
-        _data = jsonDecode(message);
+        _data = decodedMessage;
+
+        // Add new temperature data
+        if (decodedMessage['temp'] != null) {
+          temperatureData.add({
+            'time': DateTime.now(),
+            'temperature': decodedMessage['temp'],
+          });
+
+          // Keep only the last 10 data points
+          if (temperatureData.length > 10) {
+            temperatureData.removeAt(0);
+          }
+        }
       });
     });
 
@@ -56,78 +78,53 @@ class DashboardPageState extends State<DashboardPage> {
   }
 
   void _calculateFeedingTimes() {
-  try {
-    final DateTime now = DateTime.now(); // Get current time
-    final int interval = int.tryParse(globals.globalInterval) ?? 0;
+    try {
+      final DateTime now = DateTime.now(); // Get current time
+      final int interval = int.tryParse(globals.globalInterval) ?? 0;
 
-    // If lastFeedTime is set in the future, wait until it's time
-    if (lastFeedTime.isAfter(now)) {
-      final Duration remainingDuration = lastFeedTime.difference(now);
-      
+      // If lastFeedTime is set in the future, wait until it's time
+      if (lastFeedTime.isAfter(now)) {
+        final Duration remainingDuration = lastFeedTime.difference(now);
+
+        setState(() {
+          _nextFeedTime = DateFormat('yyyy-MM-dd hh:mm:ss a').format(lastFeedTime);
+          _timeRemaining = '${remainingDuration.inHours} H ${remainingDuration.inMinutes % 60} Min ${remainingDuration.inSeconds % 60} Sec';
+        });
+
+        return; // Exit function early to avoid unnecessary feeding
+      }
+
+      // Calculate next feed time
+      DateTime nextFeedTime = lastFeedTime.add(Duration(seconds: interval));
+
+      // If it's time to feed the fish
+      if (!nextFeedTime.isAfter(now)) {
+        // Update lastFeedTime to the existing nextFeedTime
+        lastFeedTime = nextFeedTime;
+        globals.globalTimefull = nextFeedTime; // Update global last feed time
+
+        // Recalculate next feeding time
+        nextFeedTime = lastFeedTime.add(Duration(seconds: interval));
+      }
+
+      // Calculate remaining time until next feeding
+      final Duration remainingDuration = nextFeedTime.difference(now);
+
+      // Update UI with next feeding time
       setState(() {
-      _nextFeedTime = DateFormat('yyyy-MM-dd hh:mm:ss a').format(lastFeedTime);
-      _timeRemaining = '${remainingDuration.inHours} H ${remainingDuration.inMinutes % 60} Min ${remainingDuration.inSeconds % 60} Sec';
+        _nextFeedTime = DateFormat('yyyy-MM-dd hh:mm:ss a').format(nextFeedTime);
+        _timeRemaining = remainingDuration.isNegative
+            ? 'Feeding overdue'
+            : '${remainingDuration.inHours} H ${remainingDuration.inMinutes % 60} Min ${remainingDuration.inSeconds % 60} Sec';
       });
-
-      // Check if the remaining duration is very close to zero
-      /*if (remainingDuration.inSeconds == 0) {
-        
-        // Send feeding message via WebSocket
-       _feedingChannel.sink.add('Future Set time reached! Feeding fish now');
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-        content: Text('Future Set time reached! Feeding fish now'),
-        duration: Duration(seconds: 2),
-        ),
-      );
-      }*/
-
-      return; // Exit function early to avoid unnecessary feeding
+    } catch (e) {
+      setState(() {
+        _nextFeedTime = 'Error calculating time';
+        _timeRemaining = 'Error calculating time';
+      });
     }
-
-    // Calculate next feed time
-    DateTime nextFeedTime = lastFeedTime.add(Duration(seconds: interval));
-
-    // If it's time to feed the fish
-    if (!nextFeedTime.isAfter(now)) {
-      // Send feeding message via WebSocket
-      //_feedingChannel.sink.add('Feeding fish now');
-
-      // Show SnackBar notification
-      /*ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Feeding fish now'),
-          duration: Duration(seconds: 2),
-        ),
-      );*/
-
-      // Update lastFeedTime to the existing nextFeedTime
-      lastFeedTime = nextFeedTime;
-      globals.globalTimefull = nextFeedTime; // Update global last feed time
-
-      // Recalculate next feeding time
-      nextFeedTime = lastFeedTime.add(Duration(seconds: interval));
-    }
-
-    // Calculate remaining time until next feeding
-    final Duration remainingDuration = nextFeedTime.difference(now);
-
-    // Update UI with next feeding time
-    setState(() {
-      _nextFeedTime = DateFormat('yyyy-MM-dd hh:mm:ss a').format(nextFeedTime);
-      _timeRemaining = remainingDuration.isNegative
-          ? 'Feeding overdue'
-          : '${remainingDuration.inHours} H ${remainingDuration.inMinutes % 60} Min ${remainingDuration.inSeconds % 60} Sec';
-    });
-
-  } catch (e) {
-    setState(() {
-      _nextFeedTime = 'Error calculating time';
-      _timeRemaining = 'Error calculating time';
-    });
   }
-}
+
   @override
   void dispose() {
     _dataChannel.sink.close();
@@ -142,170 +139,172 @@ class DashboardPageState extends State<DashboardPage> {
         title: Text('Dashboard'),
         centerTitle: true,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
             children: [
-            Text(
-              'Device ID: ${globals.globalDeviceId}',
-              style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
-            ),
-            //Text('global time: ${globals.globalTime}'),
-            //Text('global timefulll: ${globals.globalTimefull}'),
-            //Text('Interval: ${globals.globalInterval}'),
-            //Text('last feed time: $lastFeedTime'),
-
-            const SizedBox(height: 16.0),
-
-            // Feeding Time Panel
-            Card(
-              elevation: 4.0,
-              shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12.0),
+              Text(
+                'Device ID: ${globals.globalDeviceId}',
+                style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
               ),
-              child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                Text(
-                  'Feeding Times',
-                  style: TextStyle(
-                  fontSize: 16.0,
-                  fontWeight: FontWeight.bold,
-                  color: Color.fromARGB(255, 91, 31, 229),
+              const SizedBox(height: 16.0),
+
+              // Feeding Time Panel
+              Card(
+                elevation: 4.0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.0),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Feeding Times',
+                        style: TextStyle(
+                          fontSize: 16.0,
+                          fontWeight: FontWeight.bold,
+                          color: Color.fromARGB(255, 91, 31, 229),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8.0),
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (lastFeedTime.isAfter(DateTime.now()))
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.access_time, color: Colors.blue, size: 20.0),
+                                SizedBox(width: 8.0),
+                                Text(
+                                  'Future Feeding Time :',
+                                  style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold),
+                                  textAlign: TextAlign.center,
+                                ),
+                                SizedBox(width: 8.0),
+                                Text(
+                                  DateFormat('yyyy-MM-dd hh:mm:ss a').format(lastFeedTime),
+                                  style: TextStyle(fontSize: 14.0, color: Colors.grey[700]),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            )
+                          else ...[
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.access_time, color: Colors.blue, size: 20.0),
+                                SizedBox(width: 8.0),
+                                Text(
+                                  'Last Fed Time :',
+                                  style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold),
+                                  textAlign: TextAlign.center,
+                                ),
+                                SizedBox(width: 8.0),
+                                Text(
+                                  DateFormat('yyyy-MM-dd hh:mm:ss a').format(lastFeedTime),
+                                  style: TextStyle(fontSize: 14.0, color: Colors.grey[700]),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8.0),
+                            const Divider(height: 16.0, thickness: 0.5),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.schedule, color: Colors.green, size: 20.0),
+                                SizedBox(width: 8.0),
+                                Text(
+                                  'Next Feeding Time :',
+                                  style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold),
+                                  textAlign: TextAlign.center,
+                                ),
+                                SizedBox(width: 8.0),
+                                Text(
+                                  _nextFeedTime,
+                                  style: TextStyle(fontSize: 14.0, color: Colors.grey[700]),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          ],
+                          const Divider(height: 16.0, thickness: 0.5),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.timer, color: Colors.red, size: 20.0),
+                              SizedBox(width: 8.0),
+                              Text(
+                                'Time Remaining :',
+                                style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold),
+                                textAlign: TextAlign.center,
+                              ),
+                              SizedBox(width: 8.0),
+                              Text(
+                                _timeRemaining,
+                                style: TextStyle(fontSize: 14.0, color: Colors.grey[700]),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 8.0),
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                  if (lastFeedTime.isAfter(DateTime.now()))
-                    Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                    Icon(Icons.access_time, color: Colors.blue, size: 20.0),
-                    SizedBox(width: 8.0),
-                    Text(
-                    'Future Feeding Time :',
-                    style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
-                    ),
-                    SizedBox(width: 8.0),
-                    Text(
-                    DateFormat('yyyy-MM-dd hh:mm:ss a').format(lastFeedTime),
-                    style: TextStyle(fontSize: 14.0, color: Colors.grey[700]),
-                    textAlign: TextAlign.center,
-                    ),
-                    ],
-                    )
-                  else ...[
-                    Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                    Icon(Icons.access_time, color: Colors.blue, size: 20.0),
-                    SizedBox(width: 8.0),
-                    Text(
-                    'Last Fed Time :',
-                    style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
-                    ),
-                    SizedBox(width: 8.0),
-                    Text(
-                    DateFormat('yyyy-MM-dd hh:mm:ss a').format(lastFeedTime),
-                    style: TextStyle(fontSize: 14.0, color: Colors.grey[700]),
-                    textAlign: TextAlign.center,
-                    ),
-                    ],
-                    ),
-                    const SizedBox(height: 8.0),
-                    const Divider(height: 16.0, thickness: 0.5),
-                    Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                    Icon(Icons.schedule, color: Colors.green, size: 20.0),
-                    SizedBox(width: 8.0),
-                    Text(
-                    'Next Feeding Time :',
-                    style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
-                    ),
-                    SizedBox(width: 8.0),
-                    Text(
-                    _nextFeedTime,
-                    style: TextStyle(fontSize: 14.0, color: Colors.grey[700]),
-                    textAlign: TextAlign.center,
-                    ),
-                    ],
-                    ),
-                  ],
-                  const Divider(height: 16.0, thickness: 0.5),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                    Icon(Icons.timer, color: Colors.red, size: 20.0),
-                    SizedBox(width: 8.0),
-                    Text(
-                      'Time Remaining :',
-                      style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold),
-                      textAlign: TextAlign.center,
-                    ),
-                    SizedBox(width: 8.0),
-                    Text(
-                      _timeRemaining,
-                      style: TextStyle(fontSize: 14.0, color: Colors.grey[700]),
-                      textAlign: TextAlign.center,
-                    ),
-                    ],
-                  ),
-                  ],
-                ),
-                ],
               ),
-              ),
-            ),
 
-            const SizedBox(height: 16.0),
+              const SizedBox(height: 16.0),
 
-            // Dashboard Data
-            Expanded(
-              child: _data.isEmpty
-                ? Center(child: CircularProgressIndicator())
-                : GridView.count(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 16.0,
-                  mainAxisSpacing: 16.0,
-                  children: [
-                  _buildDashboardCard(Icons.water_drop, 'pH', _data['pH']),
-                  _buildDashboardCard(Icons.thermostat, 'Temperature', _data['temp']),
-                  _buildDashboardCard(Icons.opacity, 'Turbidity', _data['turbidity']),
-                  _buildDashboardCard(Icons.filter_alt, 'TDS Value', _data['tds_value']),
-                  ],
+              // Dashboard Data
+              _data.isEmpty
+                  ? Center(child: CircularProgressIndicator())
+                  : GridView.count(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 16.0,
+                      mainAxisSpacing: 16.0,
+                      shrinkWrap: true,
+                      physics: NeverScrollableScrollPhysics(),
+                      children: [
+                        _buildDashboardCard(Icons.water_drop, 'pH', _data['pH']),
+                        _buildDashboardCard(Icons.thermostat, 'Temperature', _data['temp']),
+                        _buildDashboardCard(Icons.opacity, 'Turbidity', _data['turbidity']),
+                        _buildDashboardCard(Icons.filter_alt, 'TDS Value', _data['tds_value']),
+                      ],
+                    ),
+
+              const SizedBox(height: 16.0),
+
+              // Temperature Chart
+              _buildTemperatureChart(),
+
+              const SizedBox(height: 16.0),
+
+              // Button to send a message to the feeding channel
+              ElevatedButton(
+                onPressed: () {
+                  _feedingChannel.sink.add('device_id:${globals.globalDeviceId}; feed_now:1');
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Manual feeding message sent'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 202, 216, 240), // Set the background color
                 ),
-            ),
-
-            const SizedBox(height: 16.0),
-
-            // Button to send a message to the feeding channel
-            ElevatedButton(
-              onPressed: () {
-              _feedingChannel.sink.add('device_id:${globals.globalDeviceId}; feed_now:1');
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                content: Text('Manual feeding message sent'),
-                duration: Duration(seconds: 2),
-                ),
-              );
-              },
-              style: ElevatedButton.styleFrom(
-              backgroundColor: const Color.fromARGB(255, 202, 216, 240), // Set the background color
+                child: Text('Feed Now'),
               ),
-              child: Text('Feed Now'),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -346,6 +345,74 @@ class DashboardPageState extends State<DashboardPage> {
                 ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTemperatureChart() {
+    return Card(
+      elevation: 4.0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12.0),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Text(
+              'Time vs Temperature',
+              style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(height: 16.0),
+            SizedBox(
+              height: 200.0, // Set the height of the chart
+              child: LineChart(
+                LineChartData(
+                  gridData: FlGridData(show: true),
+                  titlesData: FlTitlesData(
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: true),
+                    ),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        getTitlesWidget: (value, meta) {
+                          final index = value.toInt();
+                          if (index >= 0 && index < temperatureData.length) {
+                            final time = temperatureData[index]['time'] as DateTime;
+                            return Text('${time.hour}:${time.minute}');
+                          }
+                          return const Text('');
+                        },
+                      ),
+                    ),
+                  ),
+                  borderData: FlBorderData(show: true),
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: temperatureData
+                          .asMap()
+                          .entries
+                          .map((entry) => FlSpot(
+                                entry.key.toDouble(),
+                                entry.value['temperature'] as double,
+                              ))
+                          .toList(),
+                      isCurved: true,
+                      color: Colors.blue,
+                      barWidth: 4.0,
+                      isStrokeCapRound: true,
+                      belowBarData: BarAreaData(show: false),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
