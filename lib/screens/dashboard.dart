@@ -17,7 +17,14 @@ class DashboardPageState extends State<DashboardPage> {
   late WebSocketChannel _dataChannel;
   late WebSocketChannel _feedingChannel; // WebSocket for feeding notifications
 
-  Map<String, dynamic> _data = {};
+ Map<String, dynamic> _data = {
+  'device_id': 'Unknown',
+  'power_level': 0,
+  'pH': 7.0, // Default pH is neutral
+  'temp': 25.0, // Default temperature
+  'turbidity': 0.0,
+  'tds_value': 0.0,
+};
 
   String _nextFeedTime = 'Calculating...';
   String _timeRemaining = 'Calculating...';
@@ -50,7 +57,14 @@ class DashboardPageState extends State<DashboardPage> {
     _dataChannel.stream.listen((message) {
       final decodedMessage = jsonDecode(message);
       setState(() {
-        _data = decodedMessage;
+        _data = {
+        'device_id': decodedMessage['device_id'] ?? 'Unknown',
+        'power_level': decodedMessage['power_level'] ?? 'Unknown',
+        'pH': decodedMessage['pH'] ?? 'Unknown', // Default pH is neutral
+        'temp': decodedMessage['temp'] ?? 'Unknown', // Default temperature
+        'turbidity': decodedMessage['turbidity'] ?? 'Unknown',
+        'tds_value': decodedMessage['tds_value'] ?? 'Unknown',
+    };
 
         // Add new temperature data
         if (decodedMessage['temp'] != null) {
