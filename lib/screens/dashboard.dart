@@ -5,6 +5,67 @@ import 'dart:async';
 import 'package:intl/intl.dart'; // For formatting DateTime
 import 'package:aquaguard/globals.dart' as globals;
 import 'package:fl_chart/fl_chart.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+
+class DatabaseHelper {
+  static final DatabaseHelper _instance = DatabaseHelper._internal();
+  factory DatabaseHelper() => _instance;
+
+  static Database? _database;
+
+  DatabaseHelper._internal();
+
+  Future<Database> get database async {
+    if (_database != null) return _database!;
+    _database = await _initDatabase();
+    return _database!;
+  }
+
+  Future<Database> _initDatabase() async {
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, 'dashboard_data.db');
+
+    return await openDatabase(
+      path,
+      version: 1,
+      onCreate: (db, version) async {
+        await db.execute('''
+          CREATE TABLE temperature_data (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            time TEXT NOT NULL,
+            temperature REAL NOT NULL
+          )
+        ''');
+      },
+    );
+  }
+
+  Future<void> insertTemperatureData(Map<String, dynamic> data) async {
+    final db = await database;
+    await db.insert('temperature_data', data);
+
+    // Keep only the last 10 records
+    final count = Sqflite.firstIntValue(
+      await db.rawQuery('SELECT COUNT(*) FROM temperature_data'),
+    );
+    if (count != null && count > 10) {
+      await db.delete(
+        'temperature_data',
+        where: 'id NOT IN (SELECT id FROM temperature_data ORDER BY id DESC LIMIT 10)',
+      );
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getTemperatureData() async {
+    final db = await database;
+    return await db.query(
+      'temperature_data',
+      orderBy: 'id DESC',
+      limit: 10,
+    );
+  }
+}
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -17,14 +78,14 @@ class DashboardPageState extends State<DashboardPage> {
   late WebSocketChannel _dataChannel;
   late WebSocketChannel _feedingChannel; // WebSocket for feeding notifications
 
- Map<String, dynamic> _data = {
-  'device_id': 'Unknown',
-  'power_level': 0,
-  'pH': 7.0, // Default pH is neutral
-  'temp': 25.0, // Default temperature
-  'turbidity': 2.0,
-  'tds_value': 250.0,
-};
+  Map<String, dynamic> _data = {
+    'device_id': 'Unknown',
+    'power_level': 0,
+    'pH': 7.0, // Default pH is neutral
+    'temp': 25.0, // Default temperature
+    'turbidity': 2.0,
+    'tds_value': 250.0,
+  };
 
   String _nextFeedTime = 'Calculating...';
   String _timeRemaining = 'Calculating...';
@@ -32,17 +93,16 @@ class DashboardPageState extends State<DashboardPage> {
   // Define lastFeedTime with a default value
   DateTime lastFeedTime = globals.globalTimefull;
 
-  List<Map<String, dynamic>> temperatureData = [
-    {'time': DateTime.now().subtract(Duration(minutes: 10)), 'temperature': 25.0},
-    {'time': DateTime.now().subtract(Duration(minutes: 8)), 'temperature': 26.5},
-    {'time': DateTime.now().subtract(Duration(minutes: 6)), 'temperature': 27.0},
-    {'time': DateTime.now().subtract(Duration(minutes: 4)), 'temperature': 26.8},
-    {'time': DateTime.now().subtract(Duration(minutes: 2)), 'temperature': 27.5},
-  ]; // Data for temperature chart
+  List<Map<String, dynamic>> temperatureData = []; // Data for temperature chart
+
+  final DatabaseHelper _dbHelper = DatabaseHelper();
 
   @override
   void initState() {
     super.initState();
+
+    // Load saved temperature data from the database
+    _loadTemperatureDataFromDB();
 
     // WebSocket for dashboard data
     _dataChannel = WebSocketChannel.connect(
@@ -54,24 +114,34 @@ class DashboardPageState extends State<DashboardPage> {
       Uri.parse('ws://159.89.173.231:1880/ws/dashboard/feeding/${globals.globalDeviceId}'),
     );
 
-    _dataChannel.stream.listen((message) {
+    _dataChannel.stream.listen((message) async {
       final decodedMessage = jsonDecode(message);
       setState(() {
         _data = {
-        'device_id': decodedMessage['device_id'] ?? 'Unknown',
-        'power_level': decodedMessage['power_level'] ?? 'Unknown',
-        'pH': decodedMessage['pH'] ?? 'Unknown', // Default pH is neutral
-        'temp': decodedMessage['temp'] ?? 'Unknown', // Default temperature
-        'turbidity': decodedMessage['turbidity'] ?? 'Unknown',
-        'tds_value': decodedMessage['tds_value'] ?? 'Unknown',
-    };
+          'device_id': decodedMessage['device_id'] ?? 'Unknown',
+          'power_level': decodedMessage['power_level'] ?? 'Unknown',
+          'pH': decodedMessage['pH'] ?? 'Unknown', // Default pH is neutral
+          'temp': decodedMessage['temp'] ?? 'Unknown', // Default temperature
+          'turbidity': decodedMessage['turbidity'] ?? 'Unknown',
+          'tds_value': decodedMessage['tds_value'] ?? 'Unknown',
+        };
 
         // Add new temperature data
         if (decodedMessage['temp'] != null) {
+          final newEntry = {
+            'time': DateTime.now().toIso8601String(),
+            'temperature': decodedMessage['temp'],
+          };
+
           temperatureData.add({
             'time': DateTime.now(),
             'temperature': decodedMessage['temp'],
           });
+          setState(() {}); // Notify the UI of the update
+
+          // Save to database
+          final dbHelper = DatabaseHelper();
+          dbHelper.insertTemperatureData(newEntry);
 
           // Keep only the last 10 data points
           if (temperatureData.length > 10) {
@@ -80,14 +150,35 @@ class DashboardPageState extends State<DashboardPage> {
         }
       });
     });
-
-    // Start a periodic timer to calculate feeding time in real-time
     Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
-        timer.cancel(); // Cancel the timer if the widget is no longer mounted
+        timer.cancel();
       } else {
         _calculateFeedingTimes();
       }
+    });
+
+    // Load initial temperature data from the database
+    _loadTemperatureDataFromDB();
+    _loadInitialTemperatureData();
+  }
+
+  Future<void> _loadInitialTemperatureData() async {
+    temperatureData = await _dbHelper.getTemperatureData();
+    setState(() {});
+  }
+
+  Future<void> _loadTemperatureDataFromDB() async {
+    final dbHelper = DatabaseHelper();
+    final data = await dbHelper.getTemperatureData();
+
+    setState(() {
+      temperatureData = data.map((entry) {
+        return {
+          'time': DateTime.parse(entry['time']),
+          'temperature': entry['temperature'],
+        };
+      }).toList();
     });
   }
 
@@ -339,13 +430,13 @@ class DashboardPageState extends State<DashboardPage> {
       double min = ranges[title]!['min']!;
       double max = ranges[title]!['max']!;
       if (value is num) {
-      if (value < min) {
-        valueColor = Colors.green;
-      } else if (value > max) {
-        valueColor = Colors.red;
-      } else {
-        valueColor = Colors.blue; // Within range
-      }
+        if (value < min) {
+          valueColor = Colors.green;
+        } else if (value > max) {
+          valueColor = Colors.red;
+        } else {
+          valueColor = Colors.blue; // Within range
+        }
       }
     }
 
@@ -365,10 +456,10 @@ class DashboardPageState extends State<DashboardPage> {
             children: [
               Icon(icon, size: 36.0, color: valueColor), // Reduced icon size
               SizedBox(height: 4.0), // Reduced spacing
-                Text(
+              Text(
                 title,
                 style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
-                ),
+              ),
               if (value != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 4.0), // Reduced padding
@@ -389,11 +480,6 @@ class DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildTemperatureChart() {
-    // Limit the data to the last 10 points
-    final limitedTemperatureData = temperatureData.length > 10
-        ? temperatureData.sublist(temperatureData.length - 10)
-        : temperatureData;
-
     return Card(
       elevation: 4.0,
       shape: RoundedRectangleBorder(
@@ -438,8 +524,8 @@ class DashboardPageState extends State<DashboardPage> {
                         showTitles: true,
                         getTitlesWidget: (value, meta) {
                           final index = value.toInt();
-                          if (index >= 0 && index < limitedTemperatureData.length) {
-                            final time = limitedTemperatureData[index]['time'] as DateTime;
+                          if (index >= 0 && index < temperatureData.length) {
+                            final time = DateTime.parse(temperatureData[index]['time']);
                             return Text(
                               DateFormat('HH:mm').format(time), // Show x-axis values
                               style: TextStyle(fontSize: 10.0),
@@ -456,7 +542,7 @@ class DashboardPageState extends State<DashboardPage> {
                   ),
                   lineBarsData: [
                     LineChartBarData(
-                      spots: limitedTemperatureData
+                      spots: temperatureData
                           .asMap()
                           .entries
                           .map((entry) => FlSpot(
