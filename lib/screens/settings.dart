@@ -263,7 +263,7 @@ class SettingsPageState extends State<SettingsPage> {
                 //keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   border: OutlineInputBorder(),
-                  labelText: 'Enter Interval (in minutes) for feeding',
+                  labelText: 'Enter Interval (in seconds) for feeding',
                 ),
               ),
               const SizedBox(height: 16.0),

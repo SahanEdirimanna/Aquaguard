@@ -22,8 +22,8 @@ class DashboardPageState extends State<DashboardPage> {
   'power_level': 0,
   'pH': 7.0, // Default pH is neutral
   'temp': 25.0, // Default temperature
-  'turbidity': 0.0,
-  'tds_value': 0.0,
+  'turbidity': 2.0,
+  'tds_value': 250.0,
 };
 
   String _nextFeedTime = 'Calculating...';
@@ -325,6 +325,30 @@ class DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildDashboardCard(IconData icon, String title, dynamic value) {
+    // Define ranges for each title
+    Map<String, Map<String, double>> ranges = {
+      'pH': {'min': 6.5, 'max': 8.5},
+      'Temperature': {'min': 18.0, 'max': 30.0},
+      'Turbidity': {'min': 0.0, 'max': 5.0},
+      'TDS Value': {'min': 200.0, 'max': 500.0},
+    };
+
+    // Determine the color based on the value and range
+    Color valueColor = Colors.blue; // Default color
+    if (value != null && ranges.containsKey(title)) {
+      double min = ranges[title]!['min']!;
+      double max = ranges[title]!['max']!;
+      if (value is num) {
+      if (value < min) {
+        valueColor = Colors.green;
+      } else if (value > max) {
+        valueColor = Colors.red;
+      } else {
+        valueColor = Colors.blue; // Within range
+      }
+      }
+    }
+
     return Card(
       elevation: 4.0,
       shape: RoundedRectangleBorder(
@@ -339,12 +363,12 @@ class DashboardPageState extends State<DashboardPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 36.0, color: Colors.blue), // Reduced icon size
+              Icon(icon, size: 36.0, color: valueColor), // Reduced icon size
               SizedBox(height: 4.0), // Reduced spacing
-              Text(
+                Text(
                 title,
                 style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
-              ),
+                ),
               if (value != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 4.0), // Reduced padding
@@ -353,7 +377,7 @@ class DashboardPageState extends State<DashboardPage> {
                     style: TextStyle(
                       fontSize: 18.0,
                       fontWeight: FontWeight.bold,
-                      color: const Color.fromARGB(255, 91, 31, 229),
+                      color: valueColor, // Set the color based on the range
                     ),
                   ),
                 ),
