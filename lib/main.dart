@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:aquaguard/websocket_manager.dart';
-import 'package:aquaguard/globals.dart' as globals;
 
 //importing the screens
 import 'screens/homepage.dart'; 
@@ -12,9 +10,6 @@ import '/screens/settings.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialize WebSocketManager with the device ID
-  WebSocketManager().initialize(globals.globalDeviceId);
 
   runApp(const MyApp());
 }

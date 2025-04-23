@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:aquaguard/globals.dart'; // Import the global variable
+import 'package:aquaguard/websocket_manager.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -21,6 +22,9 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       globalDeviceId = _deviceIdController.text.trim(); // Save the deviceId globally
     });
+    // Initialize WebSocketManager with the device ID
+    WebSocketManager().initialize(globalDeviceId);
+    
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Device ID saved successfully!')),
     );
