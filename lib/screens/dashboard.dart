@@ -250,12 +250,17 @@ class DashboardPageState extends State<DashboardPage> {
 
                   // Temperature Chart
                   _buildTemperatureChart(),
-
                   const SizedBox(height: 16.0),
 
                 // pH Chart
                   _buildpHChart(),
+                  const SizedBox(height: 16.0),
 
+                  _buildTurbidityChart(),
+                  const SizedBox(height: 16.0),
+
+
+                  _buildTDSChart(),
                   const SizedBox(height: 16.0),
 
                   // Display global data list
@@ -599,4 +604,201 @@ class DashboardPageState extends State<DashboardPage> {
       ),
     );
   }
-}
+
+Widget _buildTDSChart() {
+    // Limit the data to the last 10 points
+    final limitedTDSData = globals.globalData.length > 10
+        ? globals.globalData.sublist(globals.globalData.length - 10)
+        : globals.globalData;
+
+    return Card(
+      elevation: 4.0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12.0),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Text(
+              'Time vs TDS Value',
+              style: TextStyle(
+                fontSize: 16.0,
+                fontWeight: FontWeight.bold,
+                //color: Color.fromARGB(255, 91, 31, 229),
+              ),
+              ),
+            ),
+            const SizedBox(height: 16.0),
+            SizedBox(
+              height: 200.0, // Set the height of the chart
+              child: LineChart(
+                LineChartData(
+                  gridData: FlGridData(show: true), // Hide grid lines
+                  titlesData: FlTitlesData(
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 40,
+                        getTitlesWidget: (value, meta) => Text(
+                          value.toStringAsFixed(1), // Show y-axis values
+                          style: TextStyle(fontSize: 10.0),
+                        ),
+                      ),
+                    ),
+                    rightTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false), // Hide right titles
+                    ),
+                    topTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false), // Hide top titles
+                    ),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        getTitlesWidget: (value, meta) {
+                          final index = value.toInt();
+                          if (index >= 0 && index < limitedTDSData.length) {
+                            final time = limitedTDSData[index]['time'] as DateTime;
+                            return Text(
+                              DateFormat('HH:mm').format(time), // Show x-axis values
+                              style: TextStyle(fontSize: 10.0),
+                            );
+                          }
+                          return const Text('');
+                        },
+                      ),
+                    ),
+                  ),
+                  borderData: FlBorderData(
+                    show: true,
+                    border: Border.all(color: Colors.black, width: 1),
+                  ),
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: limitedTDSData
+                          .asMap()
+                          .entries
+                          .where((entry) => entry.value['tds_value'] != null && entry.value['tds_value'] is num)
+                          .map((entry) => FlSpot(
+                                entry.key.toDouble(),
+                                (entry.value['tds_value'] as num).toDouble(),
+                              ))
+                          .toList(),
+                      isCurved: true,
+                      color: Colors.orange,
+                      barWidth: 4.0,
+                      isStrokeCapRound: true,
+                      belowBarData: BarAreaData(show: false),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+
+
+Widget _buildTurbidityChart() {
+    // Limit the data to the last 10 points
+    final limitedTurbidityData = globals.globalData.length > 10
+        ? globals.globalData.sublist(globals.globalData.length - 10)
+        : globals.globalData;
+
+    return Card(
+      elevation: 4.0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12.0),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Text(
+              'Time vs Turbidity',
+              style: TextStyle(
+                fontSize: 16.0,
+                fontWeight: FontWeight.bold,
+                //color: Color.fromARGB(255, 91, 31, 229),
+              ),
+              ),
+            ),
+            const SizedBox(height: 16.0),
+            SizedBox(
+              height: 200.0, // Set the height of the chart
+              child: LineChart(
+                LineChartData(
+                  gridData: FlGridData(show: true), // Hide grid lines
+                  titlesData: FlTitlesData(
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 40,
+                        getTitlesWidget: (value, meta) => Text(
+                          value.toStringAsFixed(1), // Show y-axis values
+                          style: TextStyle(fontSize: 10.0),
+                        ),
+                      ),
+                    ),
+                    rightTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false), // Hide right titles
+                    ),
+                    topTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false), // Hide top titles
+                    ),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        getTitlesWidget: (value, meta) {
+                          final index = value.toInt();
+                          if (index >= 0 && index < limitedTurbidityData.length) {
+                            final time = limitedTurbidityData[index]['time'] as DateTime;
+                            return Text(
+                              DateFormat('HH:mm').format(time), // Show x-axis values
+                              style: TextStyle(fontSize: 10.0),
+                            );
+                          }
+                          return const Text('');
+                        },
+                      ),
+                    ),
+                  ),
+                  borderData: FlBorderData(
+                    show: true,
+                    border: Border.all(color: Colors.black, width: 1),
+                  ),
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: limitedTurbidityData
+                          .asMap()
+                          .entries
+                          .where((entry) => entry.value['turbidity'] != null && entry.value['turbidity'] is num)
+                          .map((entry) => FlSpot(
+                                entry.key.toDouble(),
+                                (entry.value['turbidity'] as num).toDouble(),
+                              ))
+                          .toList(),
+                      isCurved: true,
+                      color: Colors.purple,
+                      barWidth: 4.0,
+                      isStrokeCapRound: true,
+                      belowBarData: BarAreaData(show: false),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  }
