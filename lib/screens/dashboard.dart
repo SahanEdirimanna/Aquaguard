@@ -17,28 +17,20 @@ class DashboardPageState extends State<DashboardPage> {
   late WebSocketChannel _dataChannel;
   late WebSocketChannel _feedingChannel; // WebSocket for feeding notifications
 
- Map<String, dynamic> _data = {
-  'device_id': 'Unknown',
-  'power_level': 0,
-  'pH': 7.0, // Default pH is neutral
-  'temp': 25.0, // Default temperature
-  'turbidity': 2.0,
-  'tds_value': 250.0,
-};
+  Map<String, dynamic> _data = {
+    'device_id': 'Unknown',
+    'power_level': 'Waiting...',
+    'pH': 'Waiting...', // Default pH is neutral
+    'temp': 'Waiting...', // Default temperature
+    'turbidity': 'Waiting...',
+    'tds_value': 'Waiting...',
+  };
 
   String _nextFeedTime = 'Calculating...';
   String _timeRemaining = 'Calculating...';
 
   // Define lastFeedTime with a default value
   DateTime lastFeedTime = globals.globalTimefull;
-
-  List<Map<String, dynamic>> temperatureData = [
-    {'time': DateTime.now().subtract(Duration(minutes: 10)), 'temperature': 25.0},
-    {'time': DateTime.now().subtract(Duration(minutes: 8)), 'temperature': 26.5},
-    {'time': DateTime.now().subtract(Duration(minutes: 6)), 'temperature': 27.0},
-    {'time': DateTime.now().subtract(Duration(minutes: 4)), 'temperature': 26.8},
-    {'time': DateTime.now().subtract(Duration(minutes: 2)), 'temperature': 27.5},
-  ]; // Data for temperature chart
 
   @override
   void initState() {
@@ -58,24 +50,29 @@ class DashboardPageState extends State<DashboardPage> {
       final decodedMessage = jsonDecode(message);
       setState(() {
         _data = {
-        'device_id': decodedMessage['device_id'] ?? 'Unknown',
-        'power_level': decodedMessage['power_level'] ?? 'Unknown',
-        'pH': decodedMessage['pH'] ?? 'Unknown', // Default pH is neutral
-        'temp': decodedMessage['temp'] ?? 'Unknown', // Default temperature
-        'turbidity': decodedMessage['turbidity'] ?? 'Unknown',
-        'tds_value': decodedMessage['tds_value'] ?? 'Unknown',
-    };
+          'device_id': decodedMessage['device_id'] ?? 'Unknown',
+          'power_level': decodedMessage['power_level'] ?? 'Unknown',
+          'pH': decodedMessage['pH'] ?? 'Unknown', // Default pH is neutral
+          'temp': decodedMessage['temp'] ?? 'Unknown', // Default temperature
+          'turbidity': decodedMessage['turbidity'] ?? 'Unknown',
+          'tds_value': decodedMessage['tds_value'] ?? 'Unknown',
+        };
 
         // Add new temperature data
-        if (decodedMessage['temp'] != null) {
-          temperatureData.add({
+        if (decodedMessage['temp'] != null && decodedMessage['pH'] != null) {
+          final newEntry = {
             'time': DateTime.now(),
             'temperature': decodedMessage['temp'],
-          });
+            'pH': decodedMessage['pH'],
+            'turbidity': decodedMessage['turbidity'],
+            'tds_value': decodedMessage['tds_value'],
+            
+          };
+          // Update globalTemperatureData
+          globals.globalData.add(newEntry);
 
-          // Keep only the last 10 data points
-          if (temperatureData.length > 10) {
-            temperatureData.removeAt(0);
+          if (globals.globalData.length > 10) {
+            globals.globalData.removeAt(0);
           }
         }
       });
@@ -153,158 +150,223 @@ class DashboardPageState extends State<DashboardPage> {
         title: Text('Dashboard'),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              Text(
-                'Device ID: ${globals.globalDeviceId}',
-                style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16.0),
+      body: Stack(
+        children: [
+          // Main content
+          SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  Text(
+                    'Device ID: ${globals.globalDeviceId}',
+                    style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16.0),
 
-              // Feeding Time Panel
-              Card(
-                elevation: 4.0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.0),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Feeding Times',
-                        style: TextStyle(
-                          fontSize: 16.0,
-                          fontWeight: FontWeight.bold,
-                          color: Color.fromARGB(255, 91, 31, 229),
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8.0),
-                      Column(
+                  // Feeding Time Panel
+                  Card(
+                    elevation: 4.0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          if (lastFeedTime.isAfter(DateTime.now()))
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.access_time, color: Colors.blue, size: 20.0),
-                                SizedBox(width: 8.0),
-                                Text(
-                                  'Future Feeding Time :',
-                                  style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold),
-                                  textAlign: TextAlign.center,
-                                ),
-                                SizedBox(width: 8.0),
-                                Text(
-                                  DateFormat('yyyy-MM-dd hh:mm:ss a').format(lastFeedTime),
-                                  style: TextStyle(fontSize: 14.0, color: Colors.grey[700]),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ],
-                            )
-                          else ...[
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.access_time, color: Colors.blue, size: 20.0),
-                                SizedBox(width: 8.0),
-                                Text(
-                                  'Last Fed Time :',
-                                  style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold),
-                                  textAlign: TextAlign.center,
-                                ),
-                                SizedBox(width: 8.0),
-                                Text(
-                                  DateFormat('yyyy-MM-dd hh:mm:ss a').format(lastFeedTime),
-                                  style: TextStyle(fontSize: 14.0, color: Colors.grey[700]),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ],
+                          Text(
+                            'Feeding Times',
+                            style: TextStyle(
+                              fontSize: 16.0,
+                              fontWeight: FontWeight.bold,
+                              color: Color.fromARGB(255, 91, 31, 229),
                             ),
-                            const SizedBox(height: 8.0),
-                            const Divider(height: 16.0, thickness: 0.5),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.schedule, color: Colors.green, size: 20.0),
-                                SizedBox(width: 8.0),
-                                Text(
-                                  'Next Feeding Time :',
-                                  style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold),
-                                  textAlign: TextAlign.center,
-                                ),
-                                SizedBox(width: 8.0),
-                                Text(
-                                  _nextFeedTime,
-                                  style: TextStyle(fontSize: 14.0, color: Colors.grey[700]),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ],
-                            ),
-                          ],
-                          const Divider(height: 16.0, thickness: 0.5),
-                          Row(
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8.0),
+                          Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.timer, color: Colors.red, size: 20.0),
-                              SizedBox(width: 8.0),
-                              Text(
-                                'Time Remaining :',
-                                style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold),
-                                textAlign: TextAlign.center,
-                              ),
-                              SizedBox(width: 8.0),
-                              Text(
-                                _timeRemaining,
-                                style: TextStyle(fontSize: 14.0, color: Colors.grey[700]),
-                                textAlign: TextAlign.center,
+                              if (lastFeedTime.isAfter(DateTime.now()))
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.access_time, color: Colors.blue, size: 20.0),
+                                    SizedBox(width: 8.0),
+                                    Text(
+                                      'Future Feeding Time :',
+                                      style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    SizedBox(width: 8.0),
+                                    Text(
+                                      DateFormat('yyyy-MM-dd hh:mm:ss a').format(lastFeedTime),
+                                      style: TextStyle(fontSize: 14.0, color: Colors.grey[700]),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                )
+                              else ...[
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.access_time, color: Colors.blue, size: 20.0),
+                                    SizedBox(width: 8.0),
+                                    Text(
+                                      'Last Fed Time :',
+                                      style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    SizedBox(width: 8.0),
+                                    Text(
+                                      DateFormat('yyyy-MM-dd hh:mm:ss a').format(lastFeedTime),
+                                      style: TextStyle(fontSize: 14.0, color: Colors.grey[700]),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8.0),
+                                const Divider(height: 16.0, thickness: 0.5),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.schedule, color: Colors.green, size: 20.0),
+                                    SizedBox(width: 8.0),
+                                    Text(
+                                      'Next Feeding Time :',
+                                      style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    SizedBox(width: 8.0),
+                                    Text(
+                                      _nextFeedTime,
+                                      style: TextStyle(fontSize: 14.0, color: Colors.grey[700]),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                ),
+                              ],
+                              const Divider(height: 16.0, thickness: 0.5),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.timer, color: Colors.red, size: 20.0),
+                                  SizedBox(width: 8.0),
+                                  Text(
+                                    'Time Remaining :',
+                                    style: TextStyle(fontSize: 14.0, fontWeight: FontWeight.bold),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  SizedBox(width: 8.0),
+                                  Text(
+                                    _timeRemaining,
+                                    style: TextStyle(fontSize: 14.0, color: Colors.grey[700]),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
                               ),
                             ],
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16.0),
-
-              // Dashboard Data
-              _data.isEmpty
-                  ? Center(child: CircularProgressIndicator())
-                  : GridView.count(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 16.0,
-                      mainAxisSpacing: 16.0,
-                      shrinkWrap: true,
-                      physics: NeverScrollableScrollPhysics(),
-                      children: [
-                        _buildDashboardCard(Icons.water_drop, 'pH', _data['pH']),
-                        _buildDashboardCard(Icons.thermostat, 'Temperature', _data['temp']),
-                        _buildDashboardCard(Icons.opacity, 'Turbidity', _data['turbidity']),
-                        _buildDashboardCard(Icons.filter_alt, 'TDS Value', _data['tds_value']),
-                      ],
                     ),
+                  ),
 
-              const SizedBox(height: 16.0),
+                  const SizedBox(height: 16.0),
 
-              // Temperature Chart
-              _buildTemperatureChart(),
+                  // Dashboard Data
+                  _data.isEmpty
+                      ? Center(child: CircularProgressIndicator())
+                      : GridView.count(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 16.0,
+                          mainAxisSpacing: 16.0,
+                          shrinkWrap: true,
+                          physics: NeverScrollableScrollPhysics(),
+                          children: [
+                            _buildDashboardCard(Icons.water_drop, 'pH', _data['pH']),
+                            _buildDashboardCard(Icons.thermostat, 'Temperature', _data['temp']),
+                            _buildDashboardCard(Icons.opacity, 'Turbidity', _data['turbidity']),
+                            _buildDashboardCard(Icons.filter_alt, 'TDS Value', _data['tds_value']),
+                          ],
+                        ),
 
-              const SizedBox(height: 16.0),
+                  const SizedBox(height: 16.0),
 
-              // Button to send a message to the feeding channel
-              ElevatedButton(
+                  // Temperature Chart
+                  _buildTemperatureChart(),
+
+                  const SizedBox(height: 16.0),
+
+                // pH Chart
+                  _buildpHChart(),
+
+                  const SizedBox(height: 16.0),
+
+                  // Display global data list
+                  Card(
+                    elevation: 4.0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Center(
+                          child: Text(
+                            'Recent Data Entries',
+                            style: TextStyle(
+                            fontSize: 16.0,
+                            fontWeight: FontWeight.bold,
+                            color: Color.fromARGB(255, 91, 31, 229),
+                            ),
+                          ),
+                          ),
+                          const SizedBox(height: 8.0),
+                          ListView.builder(
+                          shrinkWrap: true,
+                          physics: NeverScrollableScrollPhysics(),
+                          itemCount: globals.globalData.length,
+                          itemBuilder: (context, index) {
+                            final entry = globals.globalData[globals.globalData.length - 1 - index];
+                            return ListTile(
+                            leading: Icon(Icons.data_usage, color: Colors.blue),
+                            title: Text(
+                              'Time: ${DateFormat('yyyy-MM-dd HH:mm:ss').format(entry['time'])}',
+                              style: TextStyle(fontSize: 14.0),
+                            ),
+                            subtitle: Text(
+                              'Temperature: ${entry['temperature']}°C, pH: ${entry['pH']}, Turbidity: ${entry['turbidity']}, TDS: ${entry['tds_value']}',
+                              style: TextStyle(fontSize: 12.0),
+                            ),
+                            );
+                          },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 25.0),
+                ],
+              ),
+            ),
+          ),
+
+          // Fixed "Feed Now" button at the bottom-right corner
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0), // Add padding to position the button
+              child: ElevatedButton(
                 onPressed: () {
                   _feedingChannel.sink.add('device_id:${globals.globalDeviceId}; feed_now:1');
+                  lastFeedTime = DateTime.now(); // Update lastFeedTime
+                  globals.globalTimefull = lastFeedTime; // Update globalTimefull
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Manual feeding message sent'),
@@ -315,11 +377,15 @@ class DashboardPageState extends State<DashboardPage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color.fromARGB(255, 202, 216, 240), // Set the background color
                 ),
-                child: Text('Feed Now'),
+                child: Text(
+                  'Feed Now'
+             ),
               ),
-            ],
+
+              
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -339,13 +405,13 @@ class DashboardPageState extends State<DashboardPage> {
       double min = ranges[title]!['min']!;
       double max = ranges[title]!['max']!;
       if (value is num) {
-      if (value < min) {
-        valueColor = Colors.green;
-      } else if (value > max) {
-        valueColor = Colors.red;
-      } else {
-        valueColor = Colors.blue; // Within range
-      }
+        if (value < min) {
+          valueColor = Colors.green;
+        } else if (value > max) {
+          valueColor = Colors.red;
+        } else {
+          valueColor = Colors.blue; // Within range
+        }
       }
     }
 
@@ -365,10 +431,10 @@ class DashboardPageState extends State<DashboardPage> {
             children: [
               Icon(icon, size: 36.0, color: valueColor), // Reduced icon size
               SizedBox(height: 4.0), // Reduced spacing
-                Text(
+              Text(
                 title,
                 style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
-                ),
+              ),
               if (value != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 4.0), // Reduced padding
@@ -390,9 +456,9 @@ class DashboardPageState extends State<DashboardPage> {
 
   Widget _buildTemperatureChart() {
     // Limit the data to the last 10 points
-    final limitedTemperatureData = temperatureData.length > 10
-        ? temperatureData.sublist(temperatureData.length - 10)
-        : temperatureData;
+    final limitedTemperatureData = globals.globalData.length > 10
+        ? globals.globalData.sublist(globals.globalData.length - 10)
+        : globals.globalData;
 
     return Card(
       elevation: 4.0,
@@ -406,8 +472,12 @@ class DashboardPageState extends State<DashboardPage> {
           children: [
             Center(
               child: Text(
-                'Time vs Temperature',
-                style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+              'Time vs Temperature',
+              style: TextStyle(
+                fontSize: 16.0,
+                fontWeight: FontWeight.bold,
+                //color: Color.fromARGB(255, 91, 31, 229),
+              ),
               ),
             ),
             const SizedBox(height: 16.0),
@@ -459,13 +529,111 @@ class DashboardPageState extends State<DashboardPage> {
                       spots: limitedTemperatureData
                           .asMap()
                           .entries
+                          .where((entry) => entry.value['temperature'] != null && entry.value['temperature'] is num)
                           .map((entry) => FlSpot(
                                 entry.key.toDouble(),
-                                entry.value['temperature'] as double,
+                                (entry.value['temperature'] as num).toDouble(),
                               ))
                           .toList(),
                       isCurved: true,
                       color: Colors.blue,
+                      barWidth: 4.0,
+                      isStrokeCapRound: true,
+                      belowBarData: BarAreaData(show: false),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildpHChart() {
+    // Limit the data to the last 10 points
+    final limitedpHData = globals.globalData.length > 10
+        ? globals.globalData.sublist(globals.globalData.length - 10)
+        : globals.globalData;
+
+    return Card(
+      elevation: 4.0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12.0),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Text(
+              'Time vs pH',
+              style: TextStyle(
+                fontSize: 16.0,
+                fontWeight: FontWeight.bold,
+                //color: Color.fromARGB(255, 91, 31, 229),
+              ),
+              ),
+            ),
+            const SizedBox(height: 16.0),
+            SizedBox(
+              height: 200.0, // Set the height of the chart
+              child: LineChart(
+                LineChartData(
+                  gridData: FlGridData(show: true), // Hide grid lines
+                  titlesData: FlTitlesData(
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 40,
+                        getTitlesWidget: (value, meta) => Text(
+                          value.toStringAsFixed(1), // Show y-axis values
+                          style: TextStyle(fontSize: 10.0),
+                        ),
+                      ),
+                    ),
+                    rightTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false), // Hide right titles
+                    ),
+                    topTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false), // Hide top titles
+                    ),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        getTitlesWidget: (value, meta) {
+                          final index = value.toInt();
+                          if (index >= 0 && index < limitedpHData.length) {
+                            final time = limitedpHData[index]['time'] as DateTime;
+                            return Text(
+                              DateFormat('HH:mm').format(time), // Show x-axis values
+                              style: TextStyle(fontSize: 10.0),
+                            );
+                          }
+                          return const Text('');
+                        },
+                      ),
+                    ),
+                  ),
+                  borderData: FlBorderData(
+                    show: true,
+                    border: Border.all(color: Colors.black, width: 1),
+                  ),
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: limitedpHData
+                          .asMap()
+                          .entries
+                          .where((entry) => entry.value['pH'] != null && entry.value['pH'] is num)
+                          .map((entry) => FlSpot(
+                                entry.key.toDouble(),
+                                (entry.value['pH'] as num).toDouble(),
+                              ))
+                          .toList(),
+                      isCurved: true,
+                      color: const Color.fromARGB(255, 3, 195, 61),
                       barWidth: 4.0,
                       isStrokeCapRound: true,
                       belowBarData: BarAreaData(show: false),
