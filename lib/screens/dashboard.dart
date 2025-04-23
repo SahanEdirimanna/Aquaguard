@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
-import 'dart:convert';
 import 'dart:async';
 import 'package:intl/intl.dart'; // For formatting DateTime
 import 'package:aquaguard/globals.dart' as globals;
@@ -14,17 +13,7 @@ class DashboardPage extends StatefulWidget {
 }
 
 class DashboardPageState extends State<DashboardPage> {
-  late WebSocketChannel _dataChannel;
   late WebSocketChannel _feedingChannel; // WebSocket for feeding notifications
-
-  Map<String, dynamic> _data = {
-    'device_id': 'Unknown',
-    'power_level': 'Waiting...',
-    'pH': 'Waiting...', // Default pH is neutral
-    'temp': 'Waiting...', // Default temperature
-    'turbidity': 'Waiting...',
-    'tds_value': 'Waiting...',
-  };
 
   String _nextFeedTime = 'Calculating...';
   String _timeRemaining = 'Calculating...';
@@ -36,47 +25,11 @@ class DashboardPageState extends State<DashboardPage> {
   void initState() {
     super.initState();
 
-    // WebSocket for dashboard data
-    _dataChannel = WebSocketChannel.connect(
-      Uri.parse('ws://159.89.173.231:1880/ws/dashboard/data/${globals.globalDeviceId}'),
-    );
 
     // WebSocket for feeding notifications
     _feedingChannel = WebSocketChannel.connect(
       Uri.parse('ws://159.89.173.231:1880/ws/dashboard/feeding/${globals.globalDeviceId}'),
     );
-
-    _dataChannel.stream.listen((message) {
-      final decodedMessage = jsonDecode(message);
-      setState(() {
-        _data = {
-          'device_id': decodedMessage['device_id'] ?? 'Unknown',
-          'power_level': decodedMessage['power_level'] ?? 'Unknown',
-          'pH': decodedMessage['pH'] ?? 'Unknown', // Default pH is neutral
-          'temp': decodedMessage['temp'] ?? 'Unknown', // Default temperature
-          'turbidity': decodedMessage['turbidity'] ?? 'Unknown',
-          'tds_value': decodedMessage['tds_value'] ?? 'Unknown',
-        };
-
-        // Add new temperature data
-        if (decodedMessage['temp'] != null && decodedMessage['pH'] != null) {
-          final newEntry = {
-            'time': DateTime.now(),
-            'temperature': decodedMessage['temp'],
-            'pH': decodedMessage['pH'],
-            'turbidity': decodedMessage['turbidity'],
-            'tds_value': decodedMessage['tds_value'],
-            
-          };
-          // Update globalTemperatureData
-          globals.globalData.add(newEntry);
-
-          if (globals.globalData.length > 10) {
-            globals.globalData.removeAt(0);
-          }
-        }
-      });
-    });
 
     // Start a periodic timer to calculate feeding time in real-time
     Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -138,7 +91,6 @@ class DashboardPageState extends State<DashboardPage> {
 
   @override
   void dispose() {
-    _dataChannel.sink.close();
     _feedingChannel.sink.close(); // Close the feeding WebSocket
     super.dispose();
   }
@@ -277,22 +229,22 @@ class DashboardPageState extends State<DashboardPage> {
 
                   const SizedBox(height: 16.0),
 
-                  // Dashboard Data
-                  _data.isEmpty
+                    // Dashboard Data
+                    globals.globalData.isEmpty
                       ? Center(child: CircularProgressIndicator())
                       : GridView.count(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 16.0,
-                          mainAxisSpacing: 16.0,
-                          shrinkWrap: true,
-                          physics: NeverScrollableScrollPhysics(),
-                          children: [
-                            _buildDashboardCard(Icons.water_drop, 'pH', _data['pH']),
-                            _buildDashboardCard(Icons.thermostat, 'Temperature', _data['temp']),
-                            _buildDashboardCard(Icons.opacity, 'Turbidity', _data['turbidity']),
-                            _buildDashboardCard(Icons.filter_alt, 'TDS Value', _data['tds_value']),
-                          ],
-                        ),
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 16.0,
+                        mainAxisSpacing: 16.0,
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        children: [
+                        _buildDashboardCard(Icons.water_drop, 'pH', globals.globalData.last['pH']),
+                        _buildDashboardCard(Icons.thermostat, 'Temperature', globals.globalData.last['temperature']),
+                        _buildDashboardCard(Icons.opacity, 'Turbidity', globals.globalData.last['turbidity']),
+                        _buildDashboardCard(Icons.filter_alt, 'TDS Value', globals.globalData.last['tds_value']),
+                        ],
+                      ),
 
                   const SizedBox(height: 16.0),
 
