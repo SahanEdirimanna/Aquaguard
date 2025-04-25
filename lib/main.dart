@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:aquaguard/globals.dart';
 
 //importing the screens
 import 'screens/homepage.dart'; 
@@ -7,8 +8,7 @@ import 'screens/marketplace.dart';
 import 'screens/notifications.dart';
 import '/screens/settings.dart';
 
-
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   runApp(const MyApp());

@@ -1,13 +1,45 @@
+import 'dart:convert';
+import 'package:web_socket_channel/web_socket_channel.dart';
+
 String globalDeviceId = '2';
 String globalTime = '';
 String globalInterval = '10';
 DateTime globalTimefull = DateTime.now();
 
-List<Map<String, dynamic>> globalData = [
-    {'time': DateTime.now().subtract(Duration(minutes: 10)), 'temperature': 25.0, 'pH': 7.0, 'turbidity': 1.2, 'tds_value': 300},
-    {'time': DateTime.now().subtract(Duration(minutes: 8)), 'temperature': 26.5, 'pH': 7.2, 'turbidity': 1.3, 'tds_value': 310},
-    {'time': DateTime.now().subtract(Duration(minutes: 6)), 'temperature': 27.0, 'pH': 7.1, 'turbidity': 1.1, 'tds_value': 320},
-    {'time': DateTime.now().subtract(Duration(minutes: 4)), 'temperature': 26.8, 'pH': 7.3, 'turbidity': 1.4, 'tds_value': 330},
-    {'time': DateTime.now().subtract(Duration(minutes: 2)), 'temperature': 27.5, 'pH': 7.4, 'turbidity': 1.5, 'tds_value': 340},
+List<Map<String, dynamic>> globalData = [];
 
-];
+Future<void> initializeGlobals() async {
+  // WebSocket connection URL
+  final String webSocketUrl = 'ws://159.89.173.231:1880/ws/dashboard/database/$globalDeviceId';
+
+  // Connect to the WebSocket
+  final channel = WebSocketChannel.connect(Uri.parse(webSocketUrl));
+
+  // Listen for messages from the WebSocket
+  channel.stream.listen((message) {
+    try {
+      // Decode the received message
+      final decodedMessage = jsonDecode(message);
+
+      // Check if the message is an array of objects
+      if (decodedMessage is List) {
+        // Convert the array into globalData
+        globalData = decodedMessage.map((entry) {
+          return {
+            'time': DateTime.parse(entry['timestamp']),
+            'temperature': entry['temperature'],
+            'pH': entry['pH'] ?? 7.0, // Default pH if not provided
+            'turbidity': entry['turbidity'] ?? 0.0, // Default turbidity if not provided
+            'tds_value': entry['tds_value'] ?? 0.0, // Default TDS value if not provided
+          };
+        }).toList();
+      }
+    } catch (e) {
+      //print('Error processing WebSocket message: $e');
+    }
+  }, onError: (error) {
+    //print('WebSocket error: $error');
+  }, onDone: () {
+    //print('WebSocket connection closed');
+  });
+}
