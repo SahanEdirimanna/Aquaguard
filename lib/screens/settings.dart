@@ -13,6 +13,7 @@ class SettingsPage extends StatefulWidget {
 class SettingsPageState extends State<SettingsPage> {
   late WebSocketChannel _fishDetailsChannel;
   late WebSocketChannel _tankParametersChannel;
+  late WebSocketChannel _wifiChannel;
 
   final TextEditingController _fishTypeCountController = TextEditingController();
 
@@ -20,6 +21,11 @@ class SettingsPageState extends State<SettingsPage> {
   final TextEditingController _intervalController = TextEditingController();
   final TextEditingController _tankSizeController = TextEditingController();
   final TextEditingController _lightIntensityController = TextEditingController();
+
+  final TextEditingController _ssidController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+
 
   int _fishTypeCount = 0;
   List<Map<String, dynamic>> _fishInputs = [];
@@ -37,6 +43,10 @@ class SettingsPageState extends State<SettingsPage> {
     );
     _tankParametersChannel = WebSocketChannel.connect(
       Uri.parse('ws://159.89.173.231:1880/ws/settings/tank_parameters'),
+    );
+
+    _wifiChannel = WebSocketChannel.connect(
+      Uri.parse('ws://159.89.173.231:1880/ws/settings/wifi'),
     );
   }
 
@@ -115,15 +125,34 @@ class SettingsPageState extends State<SettingsPage> {
     }
   }
 
+  void _sendwifiDetails() {
+    final deviceId = globalDeviceId; // Use the global device ID
+    final ssid = _ssidController.text.trim();
+    final password = _passwordController.text.trim();
+
+    final message = {
+      'device_id': deviceId,
+      'ssid': ssid,
+      'password': password,
+    };
+
+    if (deviceId.isNotEmpty && ssid.isNotEmpty && password.isNotEmpty) {
+      _wifiChannel.sink.add(message.toString());
+    }
+  }
+
   @override
   void dispose() {
     _fishDetailsChannel.sink.close();
     _tankParametersChannel.sink.close();
+    _wifiChannel.sink.close();
 
     _fishTypeCountController.dispose();
     _intervalController.dispose();
     _tankSizeController.dispose();
     _lightIntensityController.dispose();
+    _ssidController.dispose();
+    _passwordController.dispose();
 
     for (var fishInput in _fishInputs) {
       fishInput['count']?.dispose();
@@ -294,6 +323,33 @@ class SettingsPageState extends State<SettingsPage> {
                   child: Text('Set Automatic Feeding'),
                 ),
               ),
+              const SizedBox(height: 16.0),
+                TextField(
+                   controller: _ssidController,
+                   decoration: InputDecoration(
+                     border: OutlineInputBorder(),
+                     labelText: 'Enter SSID',
+                   ),
+                 ),
+                 const SizedBox(height: 16.0),
+                 TextField(
+                   controller: _passwordController,
+                   decoration: InputDecoration(
+                     border: OutlineInputBorder(),
+                     labelText: 'Enter Password',
+                   ),
+                 ),
+                  const SizedBox(height: 16.0),
+              Center(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 202, 216, 240), // Set the background color
+                  ),
+                  onPressed: _sendwifiDetails,
+                  child: Text('Send Wifi data'),
+                ),
+              ),
+
             ],
           ),
         ),
