@@ -321,7 +321,7 @@ class DashboardPageState extends State<DashboardPage> {
               padding: const EdgeInsets.all(16.0), // Add padding to position the button
               child: ElevatedButton(
                 onPressed: () {
-                  _feedingChannel.sink.add('device_id:${globals.globalDeviceId}; feed_now:1');
+                  _feedingChannel.sink.add('device_id:${globals.globalDeviceId}; feed_now:True');
                   lastFeedTime = DateTime.now(); // Update lastFeedTime
                   globals.globalTimefull = lastFeedTime; // Update globalTimefull
                   ScaffoldMessenger.of(context).showSnackBar(

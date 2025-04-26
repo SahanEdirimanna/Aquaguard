@@ -69,7 +69,7 @@ class WebSocketManager {
           // Update global data
           final newEntry = {
             'time': DateTime.now(),
-            'temperature': decodedMessage['temp'],
+            'temperature': decodedMessage['temperature'],
             'pH': decodedMessage['pH'],
             'turbidity': decodedMessage['turbidity'],
             'tds_value': decodedMessage['tds_value'],

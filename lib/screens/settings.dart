@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:aquaguard/globals.dart'; // Import the global variable
 import 'package:intl/intl.dart'; // For formatting time
+import 'ai.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -395,6 +396,27 @@ class SettingsPageState extends State<SettingsPage> {
                   child: Text('Send Wifi data'),
                 ),
               ),
+              const SizedBox(height: 25.0),
+                Center(
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 202, 216, 240), // Set the background color
+                  padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 20.0),
+                  ),
+                  onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => AIPage()),
+                  );
+                  },
+                  icon: Icon(Icons.smart_toy, color: Colors.black), // Add AI-related icon
+                  label: Text(
+                  'AI Assistance',
+                  style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                ),
+              const SizedBox(height: 32.0),
 
             ],
           ),

@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
-String globalDeviceId = '2';
+String globalDeviceId = 'device_2';
 String globalTime = '';
 String globalInterval = '50';
 DateTime globalTimefull = DateTime.now();
+DateTime globalCleanedday =DateTime.now();
 
 List<Map<String, dynamic>> globalData = [];
 
