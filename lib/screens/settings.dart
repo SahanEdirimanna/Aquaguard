@@ -19,7 +19,7 @@ class SettingsPageState extends State<SettingsPage> {
 
   // Tank Parameters Controllers
   final TextEditingController _intervalController = TextEditingController();
-  final TextEditingController _tankSizeController = TextEditingController();
+  final TextEditingController _oxygenPumpController = TextEditingController();
   final TextEditingController _lightIntensityController = TextEditingController();
 
   final TextEditingController _ssidController = TextEditingController();
@@ -39,14 +39,14 @@ class SettingsPageState extends State<SettingsPage> {
     _intervalController.text = globalInterval; // Pre-fill with global interval
 
     _fishDetailsChannel = WebSocketChannel.connect(
-      Uri.parse('ws://159.89.173.231:1880/ws/settings/fsh_details'),
+      Uri.parse('ws://159.89.173.231:1880/ws/settings/fsh_details/$globalDeviceId'),
     );
     _tankParametersChannel = WebSocketChannel.connect(
-      Uri.parse('ws://159.89.173.231:1880/ws/settings/tank_parameters'),
+      Uri.parse('ws://159.89.173.231:1880/ws/settings/tank_parameters/$globalDeviceId'),
     );
 
     _wifiChannel = WebSocketChannel.connect(
-      Uri.parse('ws://159.89.173.231:1880/ws/settings/wifi'),
+      Uri.parse('ws://159.89.173.231:1880/ws/settings/wifi/$globalDeviceId'),
     );
   }
 
@@ -106,7 +106,7 @@ class SettingsPageState extends State<SettingsPage> {
   void _sendTankParameters() {
     final deviceId = globalDeviceId; // Use the global device ID
     final interval = _intervalController.text.trim();
-    final tankSize = _tankSizeController.text.trim();
+    final oxygenPump = _oxygenPumpController.text.trim();
     final lightIntensity = _lightIntensityController.text.trim();
 
     // Update global variables
@@ -116,7 +116,7 @@ class SettingsPageState extends State<SettingsPage> {
       'device_id': deviceId,
       'time': _selectedTime,
       'interval': interval,
-      'tank_size': tankSize,
+      'oxygen_pump': oxygenPump,
       'light_intensity': lightIntensity,
     };
 
@@ -149,7 +149,7 @@ class SettingsPageState extends State<SettingsPage> {
 
     _fishTypeCountController.dispose();
     _intervalController.dispose();
-    _tankSizeController.dispose();
+    _oxygenPumpController.dispose();
     _lightIntensityController.dispose();
     _ssidController.dispose();
     _passwordController.dispose();
@@ -266,7 +266,15 @@ class SettingsPageState extends State<SettingsPage> {
                   style: ElevatedButton.styleFrom(
                   backgroundColor: const Color.fromARGB(255, 202, 216, 240), // Set the background color
                   ),
-                  onPressed: _sendFishDetails,
+                  onPressed: () {
+                  _sendFishDetails();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                    content: Text('Fish details sent'),
+                    duration: Duration(seconds: 1),
+                    ),
+                  );
+                  },
                   child: Text('Send Fish Details'),
                 ),
               ),
@@ -296,34 +304,64 @@ class SettingsPageState extends State<SettingsPage> {
                 ),
               ),
               const SizedBox(height: 16.0),
-                // TextField(
-                //   controller: _tankSizeController,
-                //   keyboardType: TextInputType.number,
-                //   decoration: InputDecoration(
-                //     border: OutlineInputBorder(),
-                //     labelText: 'Enter Tank Size',
-                //   ),
-                // ),
-                // const SizedBox(height: 16.0),
-                // TextField(
-                //   controller: _lightIntensityController,
-                //   keyboardType: TextInputType.number,
-                //   decoration: InputDecoration(
-                //     border: OutlineInputBorder(),
-                //     labelText: 'Enter Light Intensity',
-                //   ),
-                // ),
-                // const SizedBox(height: 16.0),
+                TextField(
+                controller: _oxygenPumpController, 
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: 'Enter Oxygen Pump rate (1-100)',
+                ),
+                onChanged: (value) {
+                  final intValue = int.tryParse(value) ?? 0;
+                  if (intValue < 1 || intValue > 100) {
+                  _oxygenPumpController.text = '';
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                    content: Text('Please enter a value between 1 and 100'),
+                    duration: Duration(seconds: 1),
+                    ),
+                  );
+                  }
+                },
+                ),
+                const SizedBox(height: 16.0),
+                TextField(
+                controller: _lightIntensityController,
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: 'Enter Light Intensity (1-100)',
+                ),
+                onChanged: (value) {
+                  final intValue = int.tryParse(value) ?? 0;
+                  if (intValue < 1 || intValue > 100) {
+                  _lightIntensityController.text = '';
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                    content: Text('Please enter a value between 1 and 100'),
+                    duration: Duration(seconds: 1),
+                    ),
+                  );
+                  }
+                },
+                ),
+              const SizedBox(height: 16.0),
               Center(
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                   backgroundColor: const Color.fromARGB(255, 202, 216, 240), // Set the background color
                   ),
-                  onPressed: _sendTankParameters,
-                  child: Text('Set Automatic Feeding'),
+                  onPressed: () {
+                  _sendTankParameters();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                    content: Text('Tank parameters sent'),
+                    duration: Duration(seconds: 1),
+                    ),
+                  );
+                  },
+                  child: Text('Set Tank Parameters'),
                 ),
               ),
-              const SizedBox(height: 16.0),
+              const SizedBox(height: 32.0),
                 TextField(
                    controller: _ssidController,
                    decoration: InputDecoration(
@@ -345,7 +383,15 @@ class SettingsPageState extends State<SettingsPage> {
                   style: ElevatedButton.styleFrom(
                   backgroundColor: const Color.fromARGB(255, 202, 216, 240), // Set the background color
                   ),
-                  onPressed: _sendwifiDetails,
+                  onPressed: () {
+                  _sendwifiDetails();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                    content: Text('Wifi data sent'),
+                    duration: Duration(seconds: 1),
+                    ),
+                  );
+                  },
                   child: Text('Send Wifi data'),
                 ),
               ),

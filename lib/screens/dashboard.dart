@@ -327,7 +327,7 @@ class DashboardPageState extends State<DashboardPage> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Manual feeding message sent'),
-                      duration: Duration(seconds: 2),
+                      duration: Duration(seconds: 1),
                     ),
                   );
                 },

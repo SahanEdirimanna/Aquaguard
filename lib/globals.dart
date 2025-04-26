@@ -3,7 +3,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 
 String globalDeviceId = '2';
 String globalTime = '';
-String globalInterval = '10';
+String globalInterval = '50';
 DateTime globalTimefull = DateTime.now();
 
 List<Map<String, dynamic>> globalData = [];
