@@ -37,8 +37,3 @@
    flutter run
    ```
  
-
-## Acknowledgements
-
-Thanks to our department and lecturers for their support and guidance throughout this project.
-
