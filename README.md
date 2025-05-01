@@ -14,7 +14,7 @@
 ## How It Works
 
 - The app connects to an IoT system (e.g., ESP32) that collects sensor data and controls devices  
-- Communication may use Wi-Fi and cloud services (e.g., Websockets and MQTT)
+- Communication use Wi-Fi and Digital Ocean cloud services
 
 ## Getting Started
 
